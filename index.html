@@ -30,10 +30,16 @@
       margin: 5px;
       padding: 5px;
     }
+    .logout {
+      float: right;
+    }
   </style>
 </head>
 <body>
-  <h1>Admin Dashboard</h1>
+  <h1>
+    Admin Dashboard
+    <button class="logout" onclick="logout()">Logout</button>
+  </h1>
 
   <h2>Units</h2>
   <div id="units">Loading units...</div>
@@ -43,21 +49,21 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.6"></script>
   <script>
-    const client = supabase.createClient(
+    const supabase = supabase.createClient(
       'https://vaobmohukgcqfvnclqyh.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTcyNzksImV4cCI6MjA2MDMzMzI3OX0.6pl5QBTVUr8wu3bn4kXhI2kPE5qf97PrIbUw7-0382M'
     );
 
+    // Check login
+    const session = localStorage.getItem('supabaseSession');
+    if (!session) {
+      window.location.href = 'login.html';
+    }
+
     async function loadUnits() {
-      console.log('Loading units...');
-      const { data: units, error } = await client.from('units').select('*').order('id');
+      const { data: units, error } = await supabase.from('units').select('*').order('id');
+      if (error) return console.error('Error loading units:', error);
 
-      if (error) {
-        console.error('Error loading units:', error);
-        return;
-      }
-
-      console.log('Units loaded:', units);
       const container = document.getElementById('units');
       container.innerHTML = '';
 
@@ -89,22 +95,15 @@
     async function saveUnit(id) {
       const name = document.getElementById(`name-${id}`).value;
       const thumbnail = document.getElementById(`thumb-${id}`).value;
-
-      const { error } = await client.from('units').update({ name, thumbnail }).eq('id', id);
+      const { error } = await supabase.from('units').update({ name, thumbnail }).eq('id', id);
       if (error) console.error('Error saving unit:', error);
       loadUnits();
     }
 
     async function loadBookings() {
-      console.log('Loading bookings...');
-      const { data: bookings, error } = await client.from('bookings').select('*').order('date');
+      const { data: bookings, error } = await supabase.from('bookings').select('*').order('date');
+      if (error) return console.error('Error loading bookings:', error);
 
-      if (error) {
-        console.error('Error loading bookings:', error);
-        return;
-      }
-
-      console.log('Bookings loaded:', bookings);
       const container = document.getElementById('bookings');
       container.innerHTML = '';
 
@@ -114,6 +113,11 @@
         div.textContent = `${b.date} - ${b.name} booked Unit ${b.unit}`;
         container.appendChild(div);
       });
+    }
+
+    function logout() {
+      localStorage.removeItem('supabaseSession');
+      window.location.href = 'login.html';
     }
 
     loadUnits();
