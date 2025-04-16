@@ -47,28 +47,30 @@
     <p class="error" id="error"></p>
   </div>
 
-  <!-- Load Supabase first -->
+  <!-- Load Supabase JS FIRST -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.6"></script>
 
-  <!-- Run the logic only after everything has loaded -->
+  <!-- Now use Supabase AFTER it's defined -->
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const supabase = window.supabase.createClient(
-        'https://vaobmohukgcqfvnclqyh.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTcyNzksImV4cCI6MjA2MDMzMzI3OX0.6pl5QBTVUr8wu3bn4kXhI2kPE5qf97PrIbUw7-0382M'
-      );
+    const supabase = supabase.createClient(
+      'https://vaobmohukgcqfvnclqyh.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTcyNzksImV4cCI6MjA2MDMzMzI3OX0.6pl5QBTVUr8wu3bn4kXhI2kPE5qf97PrIbUw7-0382M'
+    );
 
-      document.getElementById('loginBtn').addEventListener('click', async () => {
+    document.addEventListener('DOMContentLoaded', () => {
+      const loginBtn = document.getElementById('loginBtn');
+      const errorDisplay = document.getElementById('error');
+
+      loginBtn.addEventListener('click', async () => {
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
-        const errorDisplay = document.getElementById('error');
 
-        const { user, error } = await supabase.auth.signIn({ email, password });
+        const { error, user } = await supabase.auth.signIn({ email, password });
 
         if (error) {
           errorDisplay.textContent = error.message;
         } else {
-          window.location.href = "dashboard.html"; // redirect after login
+          window.location.href = 'dashboard.html'; // change if needed
         }
       });
     });
