@@ -1,0 +1,122 @@
+import { useEffect, useState } from 'react';
+import { createClient } from '@supabase/supabase-js';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+
+const supabase = createClient(
+  'https://vaobmohukgcqfvnclqyh.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTcyNzksImV4cCI6MjA2MDMzMzI3OX0.6pl5QBTVUr8wu3bn4kXhI2kPE5qf97PrIbUw7-0382M'
+);
+
+export default function AdminDashboard() {
+  const [units, setUnits] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [editing, setEditing] = useState(null);
+  const [updatedUnit, setUpdatedUnit] = useState({});
+
+  useEffect(() => {
+    fetchUnits();
+    fetchBookings();
+  }, []);
+
+  const fetchUnits = async () => {
+    const { data } = await supabase.from('units').select('*').order('id');
+    setUnits(data);
+  };
+
+  const fetchBookings = async () => {
+    const { data } = await supabase.from('bookings').select('*').order('date');
+    setBookings(data);
+  };
+
+  const handleEdit = (unit) => {
+    setEditing(unit.id);
+    setUpdatedUnit({ name: unit.name, thumbnail: unit.thumbnail });
+  };
+
+  const handleSave = async (id) => {
+    await supabase.from('units').update(updatedUnit).eq('id', id);
+    setEditing(null);
+    fetchUnits();
+  };
+
+  return (
+    <div className="p-6 max-w-4xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4">Admin Dashboard</h1>
+
+      <div className="mb-8">
+        <h2 className="text-xl font-semibold mb-2">Manage Units</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {units.map((unit) => (
+            <Card key={unit.id}>
+              <CardContent className="p-4">
+                {editing === unit.id ? (
+                  <>
+                    <Input
+                      value={updatedUnit.name}
+                      onChange={(e) =>
+                        setUpdatedUnit({ ...updatedUnit, name: e.target.value })
+                      }
+                      placeholder="Unit Name"
+                      className="mb-2"
+                    />
+                    <Input
+                      value={updatedUnit.thumbnail}
+                      onChange={(e) =>
+                        setUpdatedUnit({ ...updatedUnit, thumbnail: e.target.value })
+                      }
+                      placeholder="Image URL"
+                      className="mb-2"
+                    />
+                    <Button onClick={() => handleSave(unit.id)}>Save</Button>
+                  </>
+                ) : (
+                  <>
+                    <img
+                      src={unit.thumbnail}
+                      alt={unit.name}
+                      className="w-full h-32 object-cover rounded mb-2"
+                    />
+                    <h3 className="text-lg font-semibold">{unit.name}</h3>
+                    <Button
+                      className="mt-2"
+                      variant="outline"
+                      onClick={() => handleEdit(unit)}
+                    >
+                      Edit
+                    </Button>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-xl font-semibold mb-2">All Bookings</h2>
+        <div className="bg-white rounded-xl shadow p-4 overflow-auto max-h-[400px]">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr>
+                <th className="pb-2">Name</th>
+                <th className="pb-2">Unit</th>
+                <th className="pb-2">Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bookings.map((b) => (
+                <tr key={b.id} className="border-t">
+                  <td className="py-2">{b.name}</td>
+                  <td className="py-2">{b.unit}</td>
+                  <td className="py-2">{b.date}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
