@@ -2,46 +2,43 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Login - Slide Guys Admin</title>
+  <title>Slide Guys Admin Login</title>
 </head>
 <body>
   <h2>Login</h2>
-  <form id="loginForm" onsubmit="return false;">
+  <form id="loginForm">
     <input type="email" id="email" placeholder="Email" required><br>
     <input type="password" id="password" placeholder="Password" required><br>
-    <button id="loginBtn">Login</button>
+    <button type="submit">Login</button>
     <p id="error" style="color: red;"></p>
   </form>
 
-  <!-- Load Supabase JS first -->
+  <!-- Load Supabase library first -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.6"></script>
 
+  <!-- App logic -->
   <script>
-    // Supabase client init (renamed to avoid global name conflict)
-    const supabaseClient = supabase.createClient(
+    // Wait until Supabase library is loaded
+    const supabase = window.supabase.createClient(
       'https://vaobmohukgcqfvnclqyh.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTcyNzksImV4cCI6MjA2MDMzMzI3OX0.6pl5QBTVUr8wu3bn4kXhI2kPE5qf97PrIbUw7-0382M'
     );
 
-    document.addEventListener('DOMContentLoaded', () => {
-      const loginBtn = document.getElementById('loginBtn');
+    document.getElementById('loginForm').addEventListener('submit', async function (e) {
+      e.preventDefault(); // prevent form default submit
+
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
       const errorDisplay = document.getElementById('error');
 
-      loginBtn.addEventListener('click', async () => {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
+      const { user, error } = await supabase.auth.signIn({ email, password });
 
-        const { error, user } = await supabaseClient.auth.signIn({
-          email,
-          password
-        });
-
-        if (error) {
-          errorDisplay.textContent = error.message;
-        } else {
-          window.location.href = 'dashboard.html';
-        }
-      });
+      if (error) {
+        errorDisplay.textContent = error.message;
+      } else {
+        // Redirect if login successful
+        window.location.href = 'dashboard.html';
+      }
     });
   </script>
 </body>
