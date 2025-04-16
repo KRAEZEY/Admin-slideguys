@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin Dashboard</title>
+  <title>Slide Guys Admin Dashboard</title>
   <style>
     body {
       font-family: sans-serif;
@@ -30,98 +30,141 @@
       margin: 5px;
       padding: 5px;
     }
-    .logout {
-      float: right;
+    .hidden {
+      display: none;
+    }
+    .auth-container {
+      max-width: 300px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    button {
+      padding: 6px 12px;
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
-  <h1>
-    Admin Dashboard
-    <button class="logout" onclick="logout()">Logout</button>
-  </h1>
+
+<div id="auth" class="auth-container">
+  <h2>Admin Login</h2>
+  <input type="email" id="email" placeholder="Email" />
+  <input type="password" id="password" placeholder="Password" />
+  <button onclick="login()">Login</button>
+</div>
+
+<div id="dashboard" class="hidden">
+  <h1>Slide Guys Admin Dashboard</h1>
+  <button onclick="logout()">Log Out</button>
 
   <h2>Units</h2>
   <div id="units">Loading units...</div>
 
   <h2>Bookings</h2>
   <div id="bookings">Loading bookings...</div>
+</div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.6"></script>
-  <script>
-    const supabase = supabase.createClient(
-      'https://vaobmohukgcqfvnclqyh.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTcyNzksImV4cCI6MjA2MDMzMzI3OX0.6pl5QBTVUr8wu3bn4kXhI2kPE5qf97PrIbUw7-0382M'
-    );
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.6"></script>
+<script>
+  const supabase = supabase.createClient(
+    'https://vaobmohukgcqfvnclqyh.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTcyNzksImV4cCI6MjA2MDMzMzI3OX0.6pl5QBTVUr8wu3bn4kXhI2kPE5qf97PrIbUw7-0382M'
+  );
 
-    // Check login
-    const session = localStorage.getItem('supabaseSession');
-    if (!session) {
-      window.location.href = 'login.html';
+  async function checkSession() {
+    const session = supabase.auth.session();
+    if (session) {
+      showDashboard();
+    } else {
+      document.getElementById('auth').classList.remove('hidden');
     }
+  }
 
-    async function loadUnits() {
-      const { data: units, error } = await supabase.from('units').select('*').order('id');
-      if (error) return console.error('Error loading units:', error);
-
-      const container = document.getElementById('units');
-      container.innerHTML = '';
-
-      units.forEach((unit) => {
-        const div = document.createElement('div');
-        div.className = 'unit';
-        div.innerHTML = `
-          <img src="${unit.thumbnail}" alt="${unit.name}" />
-          <strong>${unit.name}</strong><br />
-          <button onclick="editUnit(${unit.id}, '${unit.name}', '${unit.thumbnail}')">Edit</button>
-        `;
-        container.appendChild(div);
-      });
+  async function login() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const { error } = await supabase.auth.signIn({ email, password });
+    if (error) {
+      alert('Login failed: ' + error.message);
+    } else {
+      showDashboard();
     }
+  }
 
-    function editUnit(id, name, thumbnail) {
-      const container = document.getElementById('units');
-      const editDiv = document.createElement('div');
-      editDiv.className = 'unit';
-      editDiv.innerHTML = `
-        <input type="text" id="name-${id}" value="${name}" />
-        <input type="text" id="thumb-${id}" value="${thumbnail}" />
-        <button onclick="saveUnit(${id})">Save</button>
-      `;
-      container.innerHTML = '';
-      container.appendChild(editDiv);
-    }
+  async function logout() {
+    await supabase.auth.signOut();
+    document.getElementById('dashboard').classList.add('hidden');
+    document.getElementById('auth').classList.remove('hidden');
+  }
 
-    async function saveUnit(id) {
-      const name = document.getElementById(`name-${id}`).value;
-      const thumbnail = document.getElementById(`thumb-${id}`).value;
-      const { error } = await supabase.from('units').update({ name, thumbnail }).eq('id', id);
-      if (error) console.error('Error saving unit:', error);
-      loadUnits();
-    }
-
-    async function loadBookings() {
-      const { data: bookings, error } = await supabase.from('bookings').select('*').order('date');
-      if (error) return console.error('Error loading bookings:', error);
-
-      const container = document.getElementById('bookings');
-      container.innerHTML = '';
-
-      bookings.forEach((b) => {
-        const div = document.createElement('div');
-        div.className = 'booking';
-        div.textContent = `${b.date} - ${b.name} booked Unit ${b.unit}`;
-        container.appendChild(div);
-      });
-    }
-
-    function logout() {
-      localStorage.removeItem('supabaseSession');
-      window.location.href = 'login.html';
-    }
-
+  function showDashboard() {
+    document.getElementById('auth').classList.add('hidden');
+    document.getElementById('dashboard').classList.remove('hidden');
     loadUnits();
     loadBookings();
-  </script>
+  }
+
+  async function loadUnits() {
+    const { data: units, error } = await supabase.from('units').select('*').order('id');
+    if (error) {
+      alert('Error loading units: ' + error.message);
+      return;
+    }
+    const container = document.getElementById('units');
+    container.innerHTML = '';
+    units.forEach((unit) => {
+      const div = document.createElement('div');
+      div.className = 'unit';
+      div.innerHTML = `
+        <img src="${unit.thumbnail}" alt="${unit.name}" />
+        <strong>${unit.name}</strong><br />
+        <button onclick="editUnit(${unit.id}, '${unit.name}', '${unit.thumbnail}')">Edit</button>
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  function editUnit(id, name, thumbnail) {
+    const container = document.getElementById('units');
+    const editDiv = document.createElement('div');
+    editDiv.className = 'unit';
+    editDiv.innerHTML = `
+      <input type="text" id="name-${id}" value="${name}" />
+      <input type="text" id="thumb-${id}" value="${thumbnail}" />
+      <button onclick="saveUnit(${id})">Save</button>
+    `;
+    container.innerHTML = '';
+    container.appendChild(editDiv);
+  }
+
+  async function saveUnit(id) {
+    const name = document.getElementById(`name-${id}`).value;
+    const thumbnail = document.getElementById(`thumb-${id}`).value;
+    const { error } = await supabase.from('units').update({ name, thumbnail }).eq('id', id);
+    if (error) alert('Error saving unit: ' + error.message);
+    loadUnits();
+  }
+
+  async function loadBookings() {
+    const { data: bookings, error } = await supabase.from('bookings').select('*').order('date');
+    if (error) {
+      alert('Error loading bookings: ' + error.message);
+      return;
+    }
+    const container = document.getElementById('bookings');
+    container.innerHTML = '';
+    bookings.forEach((b) => {
+      const div = document.createElement('div');
+      div.className = 'booking';
+      div.textContent = `${b.date} - ${b.name} booked Unit ${b.unit}`;
+      container.appendChild(div);
+    });
+  }
+
+  checkSession();
+</script>
 </body>
 </html>
