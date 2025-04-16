@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Admin Dashboard</title>
   <style>
     body {
@@ -14,31 +14,21 @@
       color: #222;
     }
     .unit, .booking {
-      background: #fff;
+      background: white;
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 10px;
       border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-      padding: 12px;
-      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
-    .unit img {
+    img {
       max-width: 100px;
       display: block;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
-    input[type="text"] {
-      padding: 6px;
-      margin-right: 6px;
-    }
-    button {
-      padding: 6px 10px;
-      background: #0070f3;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #0059c1;
+    input {
+      margin: 5px;
+      padding: 5px;
     }
   </style>
 </head>
@@ -46,12 +36,11 @@
   <h1>Admin Dashboard</h1>
 
   <h2>Units</h2>
-  <div id="units"></div>
+  <div id="units">Loading units...</div>
 
   <h2>Bookings</h2>
-  <div id="bookings"></div>
+  <div id="bookings">Loading bookings...</div>
 
-  <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.6"></script>
   <script>
     const client = supabase.createClient(
@@ -60,7 +49,15 @@
     );
 
     async function loadUnits() {
-      const { data: units } = await client.from('units').select('*').order('id');
+      console.log('Loading units...');
+      const { data: units, error } = await client.from('units').select('*').order('id');
+
+      if (error) {
+        console.error('Error loading units:', error);
+        return;
+      }
+
+      console.log('Units loaded:', units);
       const container = document.getElementById('units');
       container.innerHTML = '';
 
@@ -81,8 +78,8 @@
       const editDiv = document.createElement('div');
       editDiv.className = 'unit';
       editDiv.innerHTML = `
-        <input type="text" id="name-${id}" value="${name}" placeholder="Unit name" />
-        <input type="text" id="thumb-${id}" value="${thumbnail}" placeholder="Image URL" />
+        <input type="text" id="name-${id}" value="${name}" />
+        <input type="text" id="thumb-${id}" value="${thumbnail}" />
         <button onclick="saveUnit(${id})">Save</button>
       `;
       container.innerHTML = '';
@@ -93,12 +90,21 @@
       const name = document.getElementById(`name-${id}`).value;
       const thumbnail = document.getElementById(`thumb-${id}`).value;
 
-      await client.from('units').update({ name, thumbnail }).eq('id', id);
+      const { error } = await client.from('units').update({ name, thumbnail }).eq('id', id);
+      if (error) console.error('Error saving unit:', error);
       loadUnits();
     }
 
     async function loadBookings() {
-      const { data: bookings } = await client.from('bookings').select('*').order('date');
+      console.log('Loading bookings...');
+      const { data: bookings, error } = await client.from('bookings').select('*').order('date');
+
+      if (error) {
+        console.error('Error loading bookings:', error);
+        return;
+      }
+
+      console.log('Bookings loaded:', bookings);
       const container = document.getElementById('bookings');
       container.innerHTML = '';
 
@@ -110,7 +116,6 @@
       });
     }
 
-    // Load everything
     loadUnits();
     loadBookings();
   </script>
