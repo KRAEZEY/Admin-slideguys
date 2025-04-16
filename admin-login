@@ -13,16 +13,17 @@
     <p id="error" style="color:red;"></p>
   </form>
 
-  <!-- ✅ Correct UMD build so window.supabase is available -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.6/dist/umd/supabase.min.js"></script>
+  <!-- ✅ Load Supabase JS v1 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.6"></script>
 
   <script>
-    // ✅ This works now
+    // ✅ Initialize Supabase (after library loads)
     const supabase = window.supabase.createClient(
       'https://vaobmohukgcqfvnclqyh.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTcyNzksImV4cCI6MjA2MDMzMzI3OX0.6pl5QBTVUr8wu3bn4kXhI2kPE5qf97PrIbUw7-0382M'
     );
 
+    // ✅ Handle login form submission
     document.getElementById('loginForm').addEventListener('submit', async function (e) {
       e.preventDefault();
 
@@ -35,6 +36,7 @@
       if (error) {
         errorDisplay.textContent = error.message;
       } else {
+        // ✅ Redirect to dashboard after login
         window.location.href = 'dashboard.html';
       }
     });
