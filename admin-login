@@ -2,8 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Login</title>
+  <title>Login</title>
 </head>
 <body>
   <h2>Login</h2>
@@ -14,33 +13,32 @@
     <p id="error" style="color:red;"></p>
   </form>
 
-  <!-- ✅ Load Supabase library FIRST -->
+  <!-- Load Supabase library first -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.6"></script>
-
-  <!-- ✅ Your custom login script -->
   <script>
-    // Initialize Supabase
-    const supabase = supabase.createClient(
-      'https://vaobmohukgcqfvnclqyh.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTcyNzksImV4cCI6MjA2MDMzMzI3OX0.6pl5QBTVUr8wu3bn4kXhI2kPE5qf97PrIbUw7-0382M'
-    );
+    const SUPABASE_URL = 'https://vaobmohukgcqfvnclqyh.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTcyNzksImV4cCI6MjA2MDMzMzI3OX0.6pl5QBTVUr8wu3bn4kXhI2kPE5qf97PrIbUw7-0382M';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Handle form submission
-    document.getElementById('loginForm').addEventListener('submit', async function (e) {
+    async function login(e) {
       e.preventDefault();
-
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
-      const errorDisplay = document.getElementById('error');
 
-      const { error } = await supabase.auth.signIn({ email, password });
+      const { user, error } = await supabase.auth.signIn({ email, password });
+
+      const errorEl = document.getElementById('error');
 
       if (error) {
-        errorDisplay.textContent = error.message;
+        errorEl.textContent = error.message;
       } else {
-        window.location.href = 'dashboard.html'; // Change this to your actual dashboard
+        errorEl.textContent = '';
+        alert('Login successful!');
+        // window.location.href = '/dashboard.html'; // Optional redirect
       }
-    });
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', login);
   </script>
 </body>
 </html>
