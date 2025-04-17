@@ -34,7 +34,7 @@
       padding: 2rem;
     }
     #calendar {
-      max-width: 900px;
+      max-width: 1000px;
       margin: 0 auto;
       background: white;
       padding: 1rem;
@@ -62,7 +62,7 @@
       <select id="unitFilter">
         <option value="all">All Units</option>
       </select>
-      <button id="logoutBtn">Log Out</button>
+      <button onclick="logout()">Log Out</button>
     </div>
   </header>
 
@@ -70,108 +70,92 @@
     <div id="calendar"></div>
   </div>
 
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- FullCalendar JS -->
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
-  <!-- Supabase Client -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-
   <script>
-    const supabaseUrl = 'https://vaobmohukgcqfvnclqyh.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTcyNzksImV4cCI6MjA2MDMzMzI3OX0.6pl5QBTVUr8wu3bn4kXhI2kPE5qf97PrIbUw7-0382M'; 
-    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+    const supabase = supabase.createClient(
+      "https://vaobmohukgcqfvnclqyh.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTcyNzksImV4cCI6MjA2MDMzMzI3OX0.6pl5QBTVUr8wu3bn4kXhI2kPE5qf97PrIbUw7-0382M"
+    );
 
-    const calendarEl = document.getElementById('calendar');
-    const unitFilter = document.getElementById('unitFilter');
-    const logoutBtn = document.getElementById('logoutBtn');
-
+    const calendarEl = document.getElementById("calendar");
+    const unitFilter = document.getElementById("unitFilter");
     let calendar;
 
-    async function loadUnits() {
-      const { data, error } = await supabase.from('units').select('*');
-      if (error) {
-        console.error('Error loading units:', error);
-        return;
+    async function fetchUnits() {
+      const { data, error } = await supabase.from("units").select("*");
+      if (data) {
+        data.forEach(unit => {
+          const option = document.createElement("option");
+          option.value = unit.id;
+          option.textContent = unit.name;
+          unitFilter.appendChild(option);
+        });
       }
-      data.forEach(unit => {
-        const opt = document.createElement('option');
-        opt.value = unit.id;
-        opt.textContent = unit.name;
-        unitFilter.appendChild(opt);
-      });
     }
 
-    async function loadBookings(unitId) {
-      let query = supabase.from('bookings').select('date, units (name, id)');
-      if (unitId !== 'all') {
-        query = query.eq('unit_id', unitId);
+    async function fetchBookings(unitId = "all") {
+      let query = supabase.from("bookings").select("date, unit_id");
+
+      if (unitId !== "all") {
+        query = query.eq("unit_id", unitId);
       }
 
       const { data, error } = await query;
-      if (error) {
-        console.error('Error loading bookings:', error);
-        return [];
-      }
-
-      return data.map(b => ({
-        title: b.units.name,
-        start: b.date,
-        allDay: true
-      }));
+      return data || [];
     }
 
-    async function renderCalendar(unitId = 'all') {
-      const events = await loadBookings(unitId);
+    async function loadCalendar(unitId = "all") {
+      const bookings = await fetchBookings(unitId);
+      const events = bookings.map(booking => ({
+        title: "Booked",
+        start: booking.date,
+        allDay: true
+      }));
 
-      if (calendar) calendar.destroy();
+      if (calendar) {
+        calendar.removeAllEvents();
+        calendar.addEventSource(events);
+      }
+    }
+
+    function logout() {
+      supabase.auth.signOut().then(() => {
+        window.location.href = "index.html";
+      });
+    }
+
+    function checkAuth() {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!session) {
+          window.location.href = "index.html";
+        }
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      checkAuth();
+      await fetchUnits();
 
       calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
+        initialView: "dayGridMonth",
         headerToolbar: {
-          left: 'prev,next today',
-          center: 'title',
-          right: ''
-        },
-        events,
-        dateClick: function(info) {
-          const clickedDate = info.dateStr;
-          const eventsOnDate = calendar.getEvents().filter(ev => ev.startStr === clickedDate);
-          if (eventsOnDate.length === 0) {
-            alert(`No bookings on ${clickedDate}`);
-          } else {
-            const details = eventsOnDate.map(e => `• ${e.title}`).join('\n');
-            alert(`Bookings on ${clickedDate}:\n${details}`);
-          }
+          left: "prev,next today",
+          center: "title",
+          right: ""
         }
       });
 
       calendar.render();
-    }
+      await loadCalendar();
 
-    unitFilter.addEventListener('change', (e) => {
-      renderCalendar(e.target.value);
+      unitFilter.addEventListener("change", async (e) => {
+        await loadCalendar(e.target.value);
+      });
     });
-
-    logoutBtn.addEventListener('click', async () => {
-      await supabase.auth.signOut();
-      window.location.href = 'index.html';
-    });
-
-    async function init() {
-      const {
-        data: { session }
-      } = await supabase.auth.getSession();
-
-      if (!session) {
-        window.location.href = 'index.html';
-        return;
-      }
-
-      await loadUnits();
-      await renderCalendar();
-    }
-
-    init();
   </script>
 </body>
 </html>
