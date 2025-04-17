@@ -19,95 +19,87 @@
       background: white;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    main {
-      max-width: 1000px;
-      margin: 2rem auto;
-      background: white;
-      padding: 1rem;
-      border-radius: 8px;
+    h2 {
+      margin: 0;
     }
     .controls {
       display: flex;
       gap: 1rem;
+      margin: 1rem;
+      align-items: center;
     }
-    #calendar {
-      margin-top: 2rem;
+    #calendarContainer {
       display: none;
-    }
-    .hidden {
-      display: none;
+      max-width: 1000px;
+      margin: 1rem auto;
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
     }
   </style>
 </head>
 <body>
   <header>
     <h2>📋 Admin Dashboard</h2>
-    <div class="controls">
-      <button onclick="logout()">Log Out</button>
-    </div>
+    <button onclick="logout()">Log Out</button>
   </header>
 
-  <main>
+  <div class="controls">
     <button onclick="toggleCalendar()">📅 View Bookings Calendar</button>
+    <label for="unitSelect">Filter by Unit:</label>
+    <select id="unitSelect">
+      <option value="all">All Units</option>
+    </select>
+  </div>
 
-    <div id="calendarSection" class="hidden">
-      <div style="margin-top: 1rem;">
-        <label for="unitSelect">Filter by Unit:</label>
-        <select id="unitSelect">
-          <option value="all">All Units</option>
-        </select>
-      </div>
-      <div id="calendar"></div>
-    </div>
-  </main>
+  <div id="calendarContainer">
+    <div id="calendar"></div>
+  </div>
 
-  <!-- FullCalendar and Supabase -->
+  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-
   <script>
-    const client = supabase.createClient(
+    const supabase = supabase.createClient(
       'https://vaobmohukgcqfvnclqyh.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTcyNzksImV4cCI6MjA2MDMzMzI3OX0.6pl5QBTVUr8wu3bn4kXhI2kPE5qf97PrIbUw7-0382M'
     );
 
     let calendar;
+    let unitsMap = {};
 
-    function toggleCalendar() {
-      const section = document.getElementById('calendarSection');
+    document.addEventListener('DOMContentLoaded', async function () {
       const calendarEl = document.getElementById('calendar');
-
-      if (section.classList.contains('hidden')) {
-        section.classList.remove('hidden');
-        calendarEl.style.display = 'block';
-
-        if (!calendar) {
-          calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth',
-            selectable: true,
-            headerToolbar: {
-              left: 'prev,next today',
-              center: 'title',
-              right: ''
-            },
-            dateClick: function(info) {
-              const date = info.dateStr;
-              const unit = document.getElementById('unitSelect').value;
-              showBookings(date, unit);
-            }
-          });
-          calendar.render();
-          populateUnitDropdown();
-          loadAllBookings();
+      calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        selectable: true,
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: ''
+        },
+        eventClick: function(info) {
+          const b = info.event.extendedProps;
+          const date = info.event.startStr;
+          alert(
+            `📅 Booking Details:\n\n` +
+            `Name: ${b.name}\n` +
+            `Date: ${date}\n` +
+            `Phone: ${b.phone}\n` +
+            `Email: ${b.email}\n` +
+            `Address: ${b.address}\n` +
+            `Unit: ${b.unitName}`
+          );
         }
-      } else {
-        section.classList.add('hidden');
-        calendarEl.style.display = 'none';
-      }
-    }
+      });
+      calendar.render();
+
+      await populateUnitDropdown();
+      await loadAllBookings();
+    });
 
     async function populateUnitDropdown() {
-      const { data, error } = await client.from('units').select();
+      const { data, error } = await supabase.from('units').select();
       if (error) {
         alert('Error fetching units');
         return;
@@ -115,6 +107,7 @@
 
       const select = document.getElementById('unitSelect');
       data.forEach(unit => {
+        unitsMap[unit.id] = unit.name;
         const option = document.createElement('option');
         option.value = unit.id;
         option.textContent = unit.name;
@@ -128,7 +121,9 @@
     }
 
     async function loadAllBookings(filterUnitId = 'all') {
-      let query = client.from('bookings').select('id, date, unit_id, name');
+      let query = supabase
+        .from('bookings')
+        .select('id, date, unit_id, name, phone, address, email');
 
       if (filterUnitId !== 'all') {
         query = query.eq('unit_id', filterUnitId);
@@ -146,18 +141,26 @@
         calendar.addEvent({
           title: `Booked: ${booking.name}`,
           start: booking.date,
-          allDay: true
+          allDay: true,
+          extendedProps: {
+            name: booking.name,
+            phone: booking.phone,
+            address: booking.address,
+            email: booking.email,
+            unitName: unitsMap[booking.unit_id] || booking.unit_id
+          }
         });
       });
     }
 
-    function showBookings(date, unit) {
-      alert(`Clicked on ${date}\nUnit: ${unit === 'all' ? 'All Units' : unit}`);
+    function toggleCalendar() {
+      const container = document.getElementById('calendarContainer');
+      container.style.display = container.style.display === 'none' ? 'block' : 'none';
     }
 
     async function logout() {
-      await client.auth.signOut();
-      window.location.href = 'login.html';
+      await supabase.auth.signOut();
+      window.location.href = 'login.html'; // redirect to login
     }
   </script>
 </body>
