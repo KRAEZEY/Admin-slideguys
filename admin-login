@@ -12,34 +12,10 @@
       <p id="error" style="color:red;"></p>
     </form>
 
-    <!-- ✅ Load Supabase library first -->
+    <!-- ✅ Supabase library first -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.6"></script>
-
-    <!-- ✅ Then initialize Supabase and handle login -->
-    <script>
-      const supabaseUrl = 'https://vaobmohukgcqfvnclqyh.supabase.co';
-      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTcyNzksImV4cCI6MjA2MDMzMzI3OX0.6pl5QBTVUr8wu3bn4kXhI2kPE5qf97PrIbUw7-0382M';
-      const supabase = supabase.createClient(supabaseUrl, supabaseKey);
-
-      async function login(e) {
-        e.preventDefault();
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-
-        const { user, session, error } = await supabase.auth.signIn({ email, password });
-        console.log("LOGIN RESULT:", { user, session, error });
-
-        const errorEl = document.getElementById('error');
-        if (error) {
-          errorEl.textContent = "Error: " + error.message;
-        } else {
-          errorEl.textContent = '';
-          alert('Login successful!');
-          // window.location.href = '/admin/dashboard.html';
-        }
-      }
-
-      document.getElementById('loginForm').addEventListener('submit', login);
-    </script>
+    
+    <!-- ✅ Then our custom script -->
+    <script src="login.js"></script>
   </body>
 </html>
