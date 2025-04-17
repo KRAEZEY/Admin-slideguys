@@ -4,19 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Login</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
-<body>
-  <h1>Login</h1>
-  <form>
-    <input type="email" id="email" placeholder="Email" required autocomplete="off" /><br />
-    <input type="password" id="password" placeholder="Password" required autocomplete="off" /><br />
-    <button type="submit">Log In</button>
-  </form>
 
-  <script>
-    window.onload = () => {
-      // Don't shadow the global supabase
+  <!-- ✅ Load Supabase with defer -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+
+  <!-- ✅ Your custom script ALSO deferred -->
+  <script defer>
+    window.addEventListener('DOMContentLoaded', () => {
       const client = supabase.createClient(
         'https://vaobmohukgcqfvnclqyh.supabase.co',
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTcyNzksImV4cCI6MjA2MDMzMzI3OX0.6pl5QBTVUr8wu3bn4kXhI2kPE5qf97PrIbUw7-0382M'
@@ -35,7 +29,15 @@
           alert('Logged in!');
         }
       });
-    };
+    });
   </script>
+</head>
+<body>
+  <h1>Login</h1>
+  <form>
+    <input type="email" id="email" placeholder="Email" required autocomplete="off" /><br />
+    <input type="password" id="password" placeholder="Password" required autocomplete="off" /><br />
+    <button type="submit">Log In</button>
+  </form>
 </body>
 </html>
