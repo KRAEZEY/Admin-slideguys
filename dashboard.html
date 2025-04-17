@@ -4,168 +4,160 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Admin Dashboard</title>
-  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet" />
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #f2f2f2;
-      padding: 20px;
+      margin: 0;
+      background: #f3f3f3;
     }
-    h2 {
-      margin-top: 0;
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      background: white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    main {
+      max-width: 1000px;
+      margin: 2rem auto;
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+    }
+    .controls {
+      display: flex;
+      gap: 1rem;
     }
     #calendar {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    .fc-event {
-      cursor: pointer;
-    }
-
-    .modal {
+      margin-top: 2rem;
       display: none;
-      position: fixed;
-      z-index: 1000;
-      padding-top: 100px;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      overflow: auto;
-      background-color: rgba(0,0,0,0.4);
     }
-    .modal-content {
-      background-color: white;
-      margin: auto;
-      padding: 20px;
-      border-radius: 10px;
-      width: 80%;
-      max-width: 500px;
-    }
-    .close {
-      float: right;
-      font-size: 28px;
-      font-weight: bold;
-      cursor: pointer;
+    .hidden {
+      display: none;
     }
   </style>
 </head>
 <body>
-
-  <h2>📋 Admin Dashboard</h2>
-  <button onclick="logout()">Log Out</button>
-  <br><br>
-
-  <div>
-    <label for="unitFilter">Filter by Unit:</label>
-    <select id="unitFilter" onchange="renderCalendar()">
-      <option value="all">All Units</option>
-    </select>
-  </div>
-  <br>
-
-  <div id="calendar"></div>
-
-  <!-- Modal -->
-  <div id="bookingModal" class="modal">
-    <div class="modal-content">
-      <span class="close" onclick="document.getElementById('bookingModal').style.display='none'">&times;</span>
-      <h3>Booking Info</h3>
-      <p><strong>Name:</strong> <span id="modalName"></span></p>
-      <p><strong>Email:</strong> <span id="modalEmail"></span></p>
-      <p><strong>Phone:</strong> <span id="modalPhone"></span></p>
-      <p><strong>Address:</strong> <span id="modalAddress"></span></p>
-      <p><strong>Unit:</strong> <span id="modalUnit"></span></p>
-      <p><strong>Date:</strong> <span id="modalDate"></span></p>
+  <header>
+    <h2>📋 Admin Dashboard</h2>
+    <div class="controls">
+      <button onclick="logout()">Log Out</button>
     </div>
-  </div>
+  </header>
+
+  <main>
+    <button onclick="toggleCalendar()">📅 View Bookings Calendar</button>
+
+    <div id="calendarSection" class="hidden">
+      <div style="margin-top: 1rem;">
+        <label for="unitSelect">Filter by Unit:</label>
+        <select id="unitSelect">
+          <option value="all">All Units</option>
+        </select>
+      </div>
+      <div id="calendar"></div>
+    </div>
+  </main>
+
+  <!-- FullCalendar and Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
   <script>
-    const supabase = supabase.createClient(
+    const client = supabase.createClient(
       'https://vaobmohukgcqfvnclqyh.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTcyNzksImV4cCI6MjA2MDMzMzI3OX0.6pl5QBTVUr8wu3bn4kXhI2kPE5qf97PrIbUw7-0382M'
     );
 
-    async function logout() {
-      await supabase.auth.signOut();
-      window.location.href = "index.html";
+    let calendar;
+
+    function toggleCalendar() {
+      const section = document.getElementById('calendarSection');
+      const calendarEl = document.getElementById('calendar');
+
+      if (section.classList.contains('hidden')) {
+        section.classList.remove('hidden');
+        calendarEl.style.display = 'block';
+
+        if (!calendar) {
+          calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            selectable: true,
+            headerToolbar: {
+              left: 'prev,next today',
+              center: 'title',
+              right: ''
+            },
+            dateClick: function(info) {
+              const date = info.dateStr;
+              const unit = document.getElementById('unitSelect').value;
+              showBookings(date, unit);
+            }
+          });
+          calendar.render();
+          populateUnitDropdown();
+          loadAllBookings();
+        }
+      } else {
+        section.classList.add('hidden');
+        calendarEl.style.display = 'none';
+      }
     }
 
-    document.addEventListener("DOMContentLoaded", async function () {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        window.location.href = "index.html";
+    async function populateUnitDropdown() {
+      const { data, error } = await client.from('units').select();
+      if (error) {
+        alert('Error fetching units');
         return;
       }
-      await loadUnits();
-      await renderCalendar();
-    });
 
-    async function loadUnits() {
-      const { data, error } = await supabase.from('units').select('*');
-      if (data) {
-        const filter = document.getElementById('unitFilter');
-        data.forEach(unit => {
-          const opt = document.createElement('option');
-          opt.value = unit.id;
-          opt.text = unit.name;
-          filter.appendChild(opt);
-        });
-      }
-    }
-
-    async function renderCalendar() {
-      const unitFilter = document.getElementById('unitFilter').value;
-      const calendarEl = document.getElementById('calendar');
-      calendarEl.innerHTML = '';
-
-      const { data: bookings, error } = await supabase
-        .from('bookings')
-        .select('*')
-        .order('date');
-
-      const filtered = unitFilter === 'all'
-        ? bookings
-        : bookings.filter(b => b.unit_id == unitFilter);
-
-      const events = filtered.map(b => ({
-        title: `Booked: ${b.name}`,
-        start: b.date,
-        extendedProps: {
-          name: b.name,
-          email: b.email,
-          phone: b.phone,
-          address: b.address,
-          unit: b.unit_id,
-          date: b.date
-        }
-      }));
-
-      const calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
-        headerToolbar: {
-          left: 'prev today next',
-          center: 'title',
-          right: ''
-        },
-        events: events,
-        eventClick: function(info) {
-          const props = info.event.extendedProps;
-          document.getElementById('modalName').innerText = props.name;
-          document.getElementById('modalEmail').innerText = props.email;
-          document.getElementById('modalPhone').innerText = props.phone;
-          document.getElementById('modalAddress').innerText = props.address;
-          document.getElementById('modalUnit').innerText = props.unit;
-          document.getElementById('modalDate').innerText = props.date;
-          document.getElementById('bookingModal').style.display = 'block';
-        }
+      const select = document.getElementById('unitSelect');
+      data.forEach(unit => {
+        const option = document.createElement('option');
+        option.value = unit.id;
+        option.textContent = unit.name;
+        select.appendChild(option);
       });
 
-      calendar.render();
+      select.addEventListener('change', async () => {
+        const selectedUnit = select.value;
+        await loadAllBookings(selectedUnit);
+      });
+    }
+
+    async function loadAllBookings(filterUnitId = 'all') {
+      let query = client.from('bookings').select('id, date, unit_id, name');
+
+      if (filterUnitId !== 'all') {
+        query = query.eq('unit_id', filterUnitId);
+      }
+
+      const { data, error } = await query;
+      if (error) {
+        alert('Error loading bookings');
+        return;
+      }
+
+      calendar.removeAllEvents();
+
+      data.forEach(booking => {
+        calendar.addEvent({
+          title: `Booked: ${booking.name}`,
+          start: booking.date,
+          allDay: true
+        });
+      });
+    }
+
+    function showBookings(date, unit) {
+      alert(`Clicked on ${date}\nUnit: ${unit === 'all' ? 'All Units' : unit}`);
+    }
+
+    async function logout() {
+      await client.auth.signOut();
+      window.location.href = 'login.html';
     }
   </script>
 </body>
