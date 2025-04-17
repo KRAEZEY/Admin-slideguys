@@ -50,7 +50,7 @@
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
   <script>
-    const supabase = supabase.createClient(
+    const client = supabase.createClient(
       'https://vaobmohukgcqfvnclqyh.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTcyNzksImV4cCI6MjA2MDMzMzI3OX0.6pl5QBTVUr8wu3bn4kXhI2kPE5qf97PrIbUw7-0382M'
     );
@@ -80,7 +80,7 @@
     });
 
     async function populateUnitDropdown() {
-      const { data, error } = await supabase.from('units').select();
+      const { data, error } = await client.from('units').select();
       if (error) {
         alert('Error fetching units');
         return;
@@ -101,7 +101,7 @@
     }
 
     async function loadAllBookings(filterUnitId = 'all') {
-      let query = supabase.from('bookings').select('id, date, unit_id, name');
+      let query = client.from('bookings').select('id, date, unit_id, name');
 
       if (filterUnitId !== 'all') {
         query = query.eq('unit_id', filterUnitId);
@@ -130,7 +130,7 @@
     }
 
     async function logout() {
-      await supabase.auth.signOut();
+      await client.auth.signOut();
       window.location.href = 'login.html'; // make sure this exists
     }
   </script>
