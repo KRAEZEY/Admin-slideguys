@@ -1,21 +1,23 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>Admin Login</title>
-  </head>
-  <body>
-    <h2>Login</h2>
-    <form id="loginForm">
-      <input type="email" id="email" placeholder="Email" required><br>
-      <input type="password" id="password" placeholder="Password" required><br>
-      <button type="submit">Log In</button>
-      <p id="error" style="color:red;"></p>
-    </form>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Login</title>
+</head>
+<body>
+  <h2>Admin Login</h2>
+  <form id="loginForm">
+    <input type="email" id="email" placeholder="Email" required /><br>
+    <input type="password" id="password" placeholder="Password" required /><br>
+    <button type="submit">Login</button>
+    <p id="error" style="color:red;"></p>
+  </form>
 
-    <!-- ✅ Supabase library first -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.6"></script>
-    
-    <!-- ✅ Then our custom script -->
-    <script src="login.js"></script>
-  </body>
+  <!-- Supabase Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.6"></script>
+
+  <!-- Your custom login script -->
+  <script src="login.js"></script>
+</body>
 </html>
