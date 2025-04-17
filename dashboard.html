@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Bookings Calendar</title>
+  <title>Admin Dashboard</title>
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet" />
   <style>
     body {
@@ -19,7 +19,7 @@
       background: white;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    #calendar {
+    main {
       max-width: 1000px;
       margin: 2rem auto;
       background: white;
@@ -30,20 +30,36 @@
       display: flex;
       gap: 1rem;
     }
+    #calendar {
+      margin-top: 2rem;
+      display: none;
+    }
+    .hidden {
+      display: none;
+    }
   </style>
 </head>
 <body>
   <header>
-    <h2>📅 Bookings Calendar</h2>
+    <h2>📋 Admin Dashboard</h2>
     <div class="controls">
-      <select id="unitSelect">
-        <option value="all">All Units</option>
-      </select>
       <button onclick="logout()">Log Out</button>
     </div>
   </header>
 
-  <div id="calendar"></div>
+  <main>
+    <button onclick="toggleCalendar()">📅 View Bookings Calendar</button>
+
+    <div id="calendarSection" class="hidden">
+      <div style="margin-top: 1rem;">
+        <label for="unitSelect">Filter by Unit:</label>
+        <select id="unitSelect">
+          <option value="all">All Units</option>
+        </select>
+      </div>
+      <div id="calendar"></div>
+    </div>
+  </main>
 
   <!-- FullCalendar and Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -57,27 +73,38 @@
 
     let calendar;
 
-    document.addEventListener('DOMContentLoaded', async function () {
+    function toggleCalendar() {
+      const section = document.getElementById('calendarSection');
       const calendarEl = document.getElementById('calendar');
-      calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
-        selectable: true,
-        headerToolbar: {
-          left: 'prev,next today',
-          center: 'title',
-          right: ''
-        },
-        dateClick: function(info) {
-          const date = info.dateStr;
-          const unit = document.getElementById('unitSelect').value;
-          showBookings(date, unit);
-        }
-      });
-      calendar.render();
 
-      await populateUnitDropdown();
-      await loadAllBookings();
-    });
+      if (section.classList.contains('hidden')) {
+        section.classList.remove('hidden');
+        calendarEl.style.display = 'block';
+
+        if (!calendar) {
+          calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            selectable: true,
+            headerToolbar: {
+              left: 'prev,next today',
+              center: 'title',
+              right: ''
+            },
+            dateClick: function(info) {
+              const date = info.dateStr;
+              const unit = document.getElementById('unitSelect').value;
+              showBookings(date, unit);
+            }
+          });
+          calendar.render();
+          populateUnitDropdown();
+          loadAllBookings();
+        }
+      } else {
+        section.classList.add('hidden');
+        calendarEl.style.display = 'none';
+      }
+    }
 
     async function populateUnitDropdown() {
       const { data, error } = await client.from('units').select();
@@ -126,12 +153,11 @@
 
     function showBookings(date, unit) {
       alert(`Clicked on ${date}\nUnit: ${unit === 'all' ? 'All Units' : unit}`);
-      // You can expand this with a modal or div to show the actual bookings.
     }
 
     async function logout() {
       await client.auth.signOut();
-      window.location.href = 'login.html'; // make sure this exists
+      window.location.href = 'login.html';
     }
   </script>
 </body>
