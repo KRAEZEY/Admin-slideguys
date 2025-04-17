@@ -1,154 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Admin Dashboard Calendar</title>
-  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Slide Guys Admin</title>
+
+  <!-- FullCalendar CSS from CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
+
   <style>
     body {
-      font-family: sans-serif;
-      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
       padding: 2rem;
-      background-color: #f4f4f4;
+      margin: 0;
     }
-    #calendar-container {
-      max-width: 1000px;
-      margin: 0 auto;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      padding: 1rem;
-    }
-    #toolbar {
+
+    .header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 1rem;
+      max-width: 900px;
+      margin: 0 auto 1rem;
     }
-    #unitSelect {
-      padding: 0.5rem;
-      border-radius: 6px;
+
+    .header h2 {
+      font-size: 1.8rem;
     }
-    #bookingDetails {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: white;
-      padding: 2rem;
+
+    select {
+      padding: 6px 12px;
+      font-size: 1rem;
+      border-radius: 5px;
+    }
+
+    #calendar {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 1rem;
       border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Modal styles */
+    .modal {
       display: none;
-      z-index: 1000;
-    }
-    #bookingDetails h3 {
-      margin-top: 0;
-    }
-    #overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.5);
-      display: none;
-      z-index: 999;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 1rem 2rem;
+      border-radius: 10px;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    .modal-content button {
+      margin-top: 1rem;
+      padding: 6px 16px;
     }
   </style>
 </head>
 <body>
-  <div id="calendar-container">
-    <div id="toolbar">
-      <h2>📅 Bookings Calendar</h2>
-      <select id="unitSelect">
-        <option value="all">All Units</option>
-      </select>
+
+  <div class="header">
+    <h2>📅 Bookings Calendar</h2>
+    <select id="unitSelect">
+      <option value="all">All Units</option>
+    </select>
+  </div>
+
+  <div id="calendar"></div>
+
+  <div id="bookingModal" class="modal">
+    <div class="modal-content">
+      <h3>Booking Details</h3>
+      <p id="modalContent">Loading...</p>
+      <button onclick="document.getElementById('bookingModal').style.display='none'">Close</button>
     </div>
-    <div id='calendar'></div>
   </div>
 
-  <div id="overlay"></div>
-  <div id="bookingDetails">
-    <h3>Bookings</h3>
-    <ul id="bookingList"></ul>
-    <button onclick="closeModal()">Close</button>
-  </div>
+  <!-- FullCalendar and Supabase Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    const supabase = window.supabase.createClient(
+    const supabase = supabase.createClient(
       'https://vaobmohukgcqfvnclqyh.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTcyNzksImV4cCI6MjA2MDMzMzI3OX0.6pl5QBTVUr8wu3bn4kXhI2kPE5qf97PrIbUw7-0382M'
     );
 
-    let allBookings = [];
+    const calendarEl = document.getElementById('calendar');
+    const unitSelect = document.getElementById('unitSelect');
+    const modal = document.getElementById('bookingModal');
+    const modalContent = document.getElementById('modalContent');
+
     let calendar;
+    let allBookings = [];
+
+    async function loadBookings() {
+      const { data, error } = await supabase.from('bookings').select('*');
+      if (error) {
+        console.error(error);
+        return;
+      }
+      allBookings = data;
+      renderCalendar(data);
+    }
 
     async function loadUnits() {
       const { data, error } = await supabase.from('units').select('*');
       if (!error) {
-        const select = document.getElementById('unitSelect');
         data.forEach(unit => {
-          const opt = document.createElement('option');
-          opt.value = unit.id;
-          opt.textContent = unit.name;
-          select.appendChild(opt);
+          const option = document.createElement('option');
+          option.value = unit.id;
+          option.textContent = unit.name;
+          unitSelect.appendChild(option);
         });
       }
     }
 
-    async function loadBookings() {
-      const { data, error } = await supabase.from('bookings').select('*');
-      if (!error) {
-        allBookings = data;
-        renderCalendarEvents();
-      }
-    }
+    function renderCalendar(bookings) {
+      const events = bookings.map(b => ({
+        title: `Unit ${b.unit_id}`,
+        start: b.date,
+        extendedProps: b
+      }));
 
-    function renderCalendarEvents() {
-      const selectedUnit = document.getElementById('unitSelect').value;
-      const events = allBookings
-        .filter(b => selectedUnit === 'all' || b.unit_id === selectedUnit)
-        .map(b => ({
-          title: `Booked`,
-          start: b.date,
-          extendedProps: b,
-        }));
+      if (calendar) calendar.destroy();
 
-      calendar.removeAllEvents();
-      calendar.addEventSource(events);
-    }
-
-    function openModal(dateStr) {
-      const selectedUnit = document.getElementById('unitSelect').value;
-      const bookings = allBookings.filter(b => 
-        b.date === dateStr && (selectedUnit === 'all' || b.unit_id === selectedUnit)
-      );
-
-      const list = document.getElementById('bookingList');
-      list.innerHTML = '';
-      if (bookings.length === 0) {
-        list.innerHTML = '<li>No bookings for this date.</li>';
-      } else {
-        bookings.forEach(b => {
-          const li = document.createElement('li');
-          li.textContent = `Unit ID: ${b.unit_id}`;
-          list.appendChild(li);
-        });
-      }
-
-      document.getElementById('overlay').style.display = 'block';
-      document.getElementById('bookingDetails').style.display = 'block';
-    }
-
-    function closeModal() {
-      document.getElementById('overlay').style.display = 'none';
-      document.getElementById('bookingDetails').style.display = 'none';
-    }
-
-    document.addEventListener('DOMContentLoaded', async function () {
-      const calendarEl = document.getElementById('calendar');
       calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         headerToolbar: {
@@ -156,20 +143,28 @@
           center: 'title',
           right: ''
         },
-        dateClick: function (info) {
-          openModal(info.dateStr);
+        events,
+        eventClick: (info) => {
+          const { date, unit_id, user_email } = info.event.extendedProps;
+          modalContent.textContent = `Date: ${date}\nUnit: ${unit_id}\nUser: ${user_email}`;
+          modal.style.display = 'flex';
         },
-        events: [],
-        height: 'auto',
       });
 
       calendar.render();
+    }
 
-      await loadUnits();
-      await loadBookings();
-
-      document.getElementById('unitSelect').addEventListener('change', renderCalendarEvents);
+    unitSelect.addEventListener('change', () => {
+      const selected = unitSelect.value;
+      const filtered = selected === 'all'
+        ? allBookings
+        : allBookings.filter(b => b.unit_id == selected);
+      renderCalendar(filtered);
     });
+
+    // Initial load
+    loadBookings();
+    loadUnits();
   </script>
 </body>
 </html>
