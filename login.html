@@ -3,21 +3,41 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin Login</title>
+  <title>Login</title>
 </head>
 <body>
-  <h2>Admin Login</h2>
-  <form id="loginForm">
-    <input type="email" id="email" placeholder="Email" required /><br>
-    <input type="password" id="password" placeholder="Password" required /><br>
-    <button type="submit">Login</button>
-    <p id="error" style="color:red;"></p>
+  <h1>Login</h1>
+  <form id="login-form">
+    <input type="email" id="email" placeholder="Email" required /><br/>
+    <input type="password" id="password" placeholder="Password" required /><br/>
+    <button type="submit">Log In</button>
   </form>
 
-  <!-- Supabase Library -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@1.35.6"></script>
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- Your custom login script -->
-  <script src="login.js"></script>
+  <script>
+    // ✅ Initialize Supabase
+    const supabase = supabase.createClient(
+      'https://vaobmohukgcqfvnclqyh.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTAyMDMwMTcsImV4cCI6MTcyNTc3OTAxfQ.1KxqXPdwEtxwV9O-5Fb2doZyMzVucSh7eAcJPtNCr-4'
+    );
+
+    // ✅ Login Handler
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        alert('Login failed: ' + error.message);
+      } else {
+        window.location.href = 'dashboard.html'; // ✅ Redirect after successful login
+      }
+    });
+  </script>
 </body>
 </html>
