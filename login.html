@@ -5,21 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Login</title>
 
-  <!-- Load Supabase library FIRST -->
+  <!-- Supabase must load first -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <h1>Login</h1>
+  <form>
+    <input type="email" id="email" placeholder="Email" required autocomplete="off" /><br />
+    <input type="password" id="password" placeholder="Password" required autocomplete="off" /><br />
+    <button type="submit">Log In</button>
+  </form>
 
   <script>
-    // Initialize Supabase client
-    const supabase = supabase.createClient(
-      'https://vaobmohukgcqfvnclqyh.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTcyNzksImV4cCI6MjA2MDMzMzI3OX0.6pl5QBTVUr8wu3bn4kXhI2kPE5qf97PrIbUw7-0382M'
-    );
+    window.onload = () => {
+      const supabase = supabase.createClient(
+        'https://vaobmohukgcqfvnclqyh.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTcyNzksImV4cCI6MjA2MDMzMzI3OX0.6pl5QBTVUr8wu3bn4kXhI2kPE5qf97PrIbUw7-0382M'
+      );
 
-    window.addEventListener('DOMContentLoaded', () => {
-      const form = document.querySelector('form');
-      form.addEventListener('submit', async (e) => {
+      document.querySelector('form').addEventListener('submit', async (e) => {
         e.preventDefault();
-
         const email = document.querySelector('#email').value;
         const password = document.querySelector('#password').value;
 
@@ -29,19 +34,11 @@
           alert('Login failed: ' + error.message);
         } else {
           alert('Logged in!');
-          // You can redirect here if you want:
+          // Optional redirect:
           // window.location.href = '/dashboard.html';
         }
       });
-    });
+    };
   </script>
-</head>
-<body>
-  <h1>Login</h1>
-  <form>
-    <input type="email" id="email" placeholder="Email" required autocomplete="off" /><br />
-    <input type="password" id="password" placeholder="Password" required autocomplete="off" /><br />
-    <button type="submit">Log In</button>
-  </form>
 </body>
 </html>
