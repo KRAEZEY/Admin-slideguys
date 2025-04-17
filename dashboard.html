@@ -1,75 +1,174 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Admin Dashboard</title>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard Calendar</title>
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet">
   <style>
     body {
       font-family: sans-serif;
-      background: #f5f5f5;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+      margin: 0;
+      padding: 2rem;
+      background-color: #f4f4f4;
     }
-    .card {
+    #calendar-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      padding: 1rem;
+    }
+    #toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    #unitSelect {
+      padding: 0.5rem;
+      border-radius: 6px;
+    }
+    #bookingDetails {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
       background: white;
       padding: 2rem;
-      border-radius: 10px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      text-align: center;
-      max-width: 400px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      display: none;
+      z-index: 1000;
     }
-    button {
-      margin-top: 1rem;
-      padding: 0.5rem 1rem;
-      font-size: 1rem;
-      border: none;
-      background: #333;
-      color: white;
-      border-radius: 5px;
-      cursor: pointer;
+    #bookingDetails h3 {
+      margin-top: 0;
     }
-    button:hover {
-      background: #555;
+    #overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      z-index: 999;
     }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Welcome, Admin</h1>
-    <p id="email"></p>
-    <button id="logout-btn">Log Out</button>
+  <div id="calendar-container">
+    <div id="toolbar">
+      <h2>📅 Bookings Calendar</h2>
+      <select id="unitSelect">
+        <option value="all">All Units</option>
+      </select>
+    </div>
+    <div id='calendar'></div>
   </div>
 
-  <!-- Supabase JS -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <div id="overlay"></div>
+  <div id="bookingDetails">
+    <h3>Bookings</h3>
+    <ul id="bookingList"></ul>
+    <button onclick="closeModal()">Close</button>
+  </div>
 
-  <!-- Dashboard logic -->
-  <script defer>
-    window.addEventListener('DOMContentLoaded', async () => {
-      const supabase = window.supabase.createClient(
-        'https://vaobmohukgcqfvnclqyh.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTcyNzksImV4cCI6MjA2MDMzMzI3OX0.6pl5QBTVUr8wu3bn4kXhI2kPE5qf97PrIbUw7-0382M'
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const supabase = window.supabase.createClient(
+      'https://vaobmohukgcqfvnclqyh.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTcyNzksImV4cCI6MjA2MDMzMzI3OX0.6pl5QBTVUr8wu3bn4kXhI2kPE5qf97PrIbUw7-0382M'
+    );
+
+    let allBookings = [];
+    let calendar;
+
+    async function loadUnits() {
+      const { data, error } = await supabase.from('units').select('*');
+      if (!error) {
+        const select = document.getElementById('unitSelect');
+        data.forEach(unit => {
+          const opt = document.createElement('option');
+          opt.value = unit.id;
+          opt.textContent = unit.name;
+          select.appendChild(opt);
+        });
+      }
+    }
+
+    async function loadBookings() {
+      const { data, error } = await supabase.from('bookings').select('*');
+      if (!error) {
+        allBookings = data;
+        renderCalendarEvents();
+      }
+    }
+
+    function renderCalendarEvents() {
+      const selectedUnit = document.getElementById('unitSelect').value;
+      const events = allBookings
+        .filter(b => selectedUnit === 'all' || b.unit_id === selectedUnit)
+        .map(b => ({
+          title: `Booked`,
+          start: b.date,
+          extendedProps: b,
+        }));
+
+      calendar.removeAllEvents();
+      calendar.addEventSource(events);
+    }
+
+    function openModal(dateStr) {
+      const selectedUnit = document.getElementById('unitSelect').value;
+      const bookings = allBookings.filter(b => 
+        b.date === dateStr && (selectedUnit === 'all' || b.unit_id === selectedUnit)
       );
 
-      // Check for session
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (!session) {
-        // Not logged in
-        window.location.href = '/login.html';
-        return;
+      const list = document.getElementById('bookingList');
+      list.innerHTML = '';
+      if (bookings.length === 0) {
+        list.innerHTML = '<li>No bookings for this date.</li>';
+      } else {
+        bookings.forEach(b => {
+          const li = document.createElement('li');
+          li.textContent = `Unit ID: ${b.unit_id}`;
+          list.appendChild(li);
+        });
       }
 
-      // Show user's email
-      document.getElementById('email').textContent = `Logged in as: ${session.user.email}`;
+      document.getElementById('overlay').style.display = 'block';
+      document.getElementById('bookingDetails').style.display = 'block';
+    }
 
-      // Logout button
-      document.getElementById('logout-btn').addEventListener('click', async () => {
-        await supabase.auth.signOut();
-        window.location.href = '/login.html';
+    function closeModal() {
+      document.getElementById('overlay').style.display = 'none';
+      document.getElementById('bookingDetails').style.display = 'none';
+    }
+
+    document.addEventListener('DOMContentLoaded', async function () {
+      const calendarEl = document.getElementById('calendar');
+      calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: ''
+        },
+        dateClick: function (info) {
+          openModal(info.dateStr);
+        },
+        events: [],
+        height: 'auto',
       });
+
+      calendar.render();
+
+      await loadUnits();
+      await loadBookings();
+
+      document.getElementById('unitSelect').addEventListener('change', renderCalendarEvents);
     });
   </script>
 </body>
