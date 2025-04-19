@@ -37,34 +37,6 @@
     .hidden {
       display: none;
     }
-
-    /* Modal Styles */
-    .modal {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.5);
-      display: none;
-      justify-content: center;
-      align-items: center;
-    }
-    .modal-content {
-      background: white;
-      padding: 1rem;
-      border-radius: 8px;
-      max-width: 400px;
-      width: 100%;
-    }
-    .modal-content h3 {
-      margin-top: 0;
-    }
-    .modal-content input, .modal-content select {
-      width: 100%;
-      margin-bottom: 0.5rem;
-      padding: 0.5rem;
-    }
-    .modal-content button {
-      margin-top: 0.5rem;
-    }
   </style>
 </head>
 <body>
@@ -89,21 +61,26 @@
     </div>
   </main>
 
-  <!-- Modal for Edit/View -->
-  <div class="modal" id="editModal">
-    <div class="modal-content">
-      <h3>Edit Booking</h3>
-      <input type="text" id="editName" placeholder="Name" />
-      <input type="email" id="editEmail" placeholder="Email" />
-      <input type="tel" id="editPhone" placeholder="Phone" />
-      <input type="text" id="editAddress" placeholder="Address" />
-      <input type="date" id="editDate" />
-      <select id="editUnit"></select>
-      <button onclick="saveBookingChanges()">💾 Save</button>
-      <button onclick="closeModal()">Cancel</button>
+  <!-- Booking Modal -->
+  <div id="bookingModal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 1rem; border-radius: 8px; width: 400px;">
+      <h3>📋 Booking Details</h3>
+      <form id="bookingForm">
+        <label>Name:<br><input type="text" name="name" disabled></label><br><br>
+        <label>Email:<br><input type="email" name="email" disabled></label><br><br>
+        <label>Phone:<br><input type="text" name="phone" disabled></label><br><br>
+        <label>Address:<br><input type="text" name="address" disabled></label><br><br>
+        <label>Unit:<br><input type="text" name="unitName" disabled></label><br><br>
+        <label>Date:<br><input type="text" name="date" disabled></label><br><br>
+        <div id="modalButtons">
+          <button type="button" onclick="enableEdit()">✏️ Edit</button>
+          <button type="button" onclick="closeModal()">Close</button>
+        </div>
+      </form>
     </div>
   </div>
 
+  <!-- FullCalendar and Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
@@ -114,8 +91,8 @@
     );
 
     let calendar;
+    let currentBooking = null;
     let unitMap = {};
-    let currentEditId = null;
 
     function toggleCalendar() {
       const section = document.getElementById('calendarSection');
@@ -140,8 +117,8 @@
               showBookings(date, unit);
             },
             eventClick: function(info) {
-              const booking = info.event.extendedProps.booking;
-              openModal(booking);
+              currentBooking = info.event.extendedProps.booking;
+              openBookingModal(currentBooking);
             }
           });
           calendar.render();
@@ -161,7 +138,6 @@
       }
 
       const select = document.getElementById('unitSelect');
-      const editUnit = document.getElementById('editUnit');
       data.forEach(unit => {
         unitMap[unit.id] = unit.name;
 
@@ -169,9 +145,6 @@
         option.value = unit.id;
         option.textContent = unit.name;
         select.appendChild(option);
-
-        const editOption = option.cloneNode(true);
-        editUnit.appendChild(editOption);
       });
 
       select.addEventListener('change', async () => {
@@ -184,13 +157,7 @@
 
     async function loadAllBookings(filterUnitId = 'all') {
       let query = client.from('bookings').select(`
-        id,
-        date,
-        unit,
-        name,
-        email,
-        phone,
-        address
+        id, date, unit, name, email, phone, address
       `);
 
       if (filterUnitId !== 'all') {
@@ -218,43 +185,67 @@
       });
     }
 
-    function showBookings(date, unit) {
-      alert(`Clicked on ${date}\nUnit: ${unit === 'all' ? 'All Units' : unitMap[unit] || unit}`);
+    function openBookingModal(booking) {
+      const form = document.getElementById('bookingForm');
+      form.name.value = booking.name;
+      form.email.value = booking.email;
+      form.phone.value = booking.phone;
+      form.address.value = booking.address;
+      form.unitName.value = booking.unitName || booking.unit;
+      form.date.value = booking.date;
+
+      disableForm(true);
+      document.getElementById('modalButtons').innerHTML = `
+        <button type="button" onclick="enableEdit()">✏️ Edit</button>
+        <button type="button" onclick="closeModal()">Close</button>
+      `;
+      document.getElementById('bookingModal').classList.remove('hidden');
     }
 
-    function openModal(booking) {
-      currentEditId = booking.id;
-      document.getElementById('editName').value = booking.name;
-      document.getElementById('editEmail').value = booking.email;
-      document.getElementById('editPhone').value = booking.phone;
-      document.getElementById('editAddress').value = booking.address;
-      document.getElementById('editDate').value = booking.date;
-      document.getElementById('editUnit').value = booking.unit;
-      document.getElementById('editModal').style.display = 'flex';
+    function enableEdit() {
+      disableForm(false);
+      document.getElementById('modalButtons').innerHTML = `
+        <button type="button" onclick="saveBooking()">💾 Save</button>
+        <button type="button" onclick="cancelEdit()">Cancel</button>
+      `;
+    }
+
+    function disableForm(state) {
+      const form = document.getElementById('bookingForm');
+      Array.from(form.elements).forEach(input => input.disabled = state);
+    }
+
+    function cancelEdit() {
+      if (currentBooking) openBookingModal(currentBooking);
+    }
+
+    async function saveBooking() {
+      const form = document.getElementById('bookingForm');
+      const updated = {
+        name: form.name.value,
+        email: form.email.value,
+        phone: form.phone.value,
+        address: form.address.value
+      };
+
+      const { error } = await client.from('bookings').update(updated).eq('id', currentBooking.id);
+      if (error) {
+        alert('Error saving booking');
+        return;
+      }
+
+      alert('Booking updated!');
+      closeModal();
+      loadAllBookings(document.getElementById('unitSelect').value);
     }
 
     function closeModal() {
-      document.getElementById('editModal').style.display = 'none';
-      currentEditId = null;
+      document.getElementById('bookingModal').classList.add('hidden');
+      currentBooking = null;
     }
 
-    async function saveBookingChanges() {
-      const updated = {
-        name: document.getElementById('editName').value,
-        email: document.getElementById('editEmail').value,
-        phone: document.getElementById('editPhone').value,
-        address: document.getElementById('editAddress').value,
-        date: document.getElementById('editDate').value,
-        unit: document.getElementById('editUnit').value
-      };
-
-      const { error } = await client.from('bookings').update(updated).eq('id', currentEditId);
-      if (error) {
-        alert('Failed to save booking');
-      } else {
-        closeModal();
-        loadAllBookings();
-      }
+    function showBookings(date, unit) {
+      alert(`Clicked on ${date}\nUnit: ${unit === 'all' ? 'All Units' : unitMap[unit] || unit}`);
     }
 
     async function logout() {
