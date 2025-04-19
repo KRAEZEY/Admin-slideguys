@@ -128,14 +128,20 @@
     }
 
     async function loadAllBookings(filterUnitId = 'all') {
-      let query = client.from('bookings').select('id, date, unit_id, name');
+      let query = client.from('bookings').select(`
+        id,
+        date,
+        unit,
+        name
+      `);
 
       if (filterUnitId !== 'all') {
-        query = query.eq('unit_id', filterUnitId);
+        query = query.eq('unit', filterUnitId);
       }
 
       const { data, error } = await query;
       if (error) {
+        console.error('Error loading bookings:', error.message);
         alert('Error loading bookings');
         return;
       }
