@@ -58,8 +58,8 @@
   <header>
     <h2>📋 Admin Dashboard</h2>
     <div class="controls">
-      <button onclick="createBooking()">➕ Create Booking</button>
-      <button onclick="editBooking()">✏️ Edit Booking</button>
+      <button id="createBookingBtn">➕ Create Booking</button>
+      <button id="editBookingBtn">✏️ Edit Booking</button>
       <button onclick="logout()">Log Out</button>
     </div>
   </header>
@@ -99,6 +99,9 @@
 
     let calendar;
     let units = {};
+
+    document.getElementById('editBookingBtn').addEventListener('click', editBooking);
+    document.getElementById('createBookingBtn').addEventListener('click', createBooking);
 
     function toggleCalendar() {
       const section = document.getElementById('calendarSection');
