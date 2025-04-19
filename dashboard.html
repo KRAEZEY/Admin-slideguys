@@ -44,12 +44,15 @@
       display: none;
       justify-content: center;
       align-items: center;
+      z-index: 1000;
     }
     .modal-content {
       background: white;
       padding: 2rem;
       border-radius: 8px;
       width: 400px;
+      max-height: 90vh;
+      overflow-y: auto;
     }
     .modal-content h3 {
       margin-top: 0;
@@ -64,6 +67,16 @@
     .modal-content button {
       margin-right: 0.5rem;
     }
+    ul#editBookingList {
+      list-style: none;
+      padding-left: 0;
+    }
+    ul#editBookingList li {
+      padding: 0.5rem;
+      background: #eee;
+      margin-bottom: 0.5rem;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -77,7 +90,7 @@
   <main>
     <button onclick="toggleCalendar()">📅 View Bookings Calendar</button>
     <button onclick="openCreateModal()">➕ Create Booking</button>
-    <button onclick="openEditModal()">✏️ Edit Booking</button>
+    <button onclick="openEditSelectModal()">✏️ Edit Booking</button>
 
     <div id="calendarSection" class="hidden">
       <div style="margin-top: 1rem;">
@@ -105,6 +118,16 @@
     </div>
   </div>
 
+  <!-- Edit Booking Selection Modal -->
+  <div id="editSelectModal" class="modal">
+    <div class="modal-content">
+      <h3>Select Booking to Edit</h3>
+      <div id="editCalendar"></div>
+      <ul id="editBookingList"></ul>
+      <button onclick="closeEditSelectModal()">Cancel</button>
+    </div>
+  </div>
+
   <!-- Edit Booking Modal -->
   <div id="editModal" class="modal">
     <div class="modal-content">
@@ -120,10 +143,8 @@
     </div>
   </div>
 
-  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-
   <script>
     const client = supabase.createClient(
       'https://vaobmohukgcqfvnclqyh.supabase.co',
@@ -131,24 +152,20 @@
     );
 
     let calendar;
+    let editCalendar;
+    let selectedEditBooking = null;
 
     function toggleCalendar() {
       const section = document.getElementById('calendarSection');
       const calendarEl = document.getElementById('calendar');
-
       if (section.classList.contains('hidden')) {
         section.classList.remove('hidden');
         calendarEl.style.display = 'block';
-
         if (!calendar) {
           calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
             selectable: true,
-            headerToolbar: {
-              left: 'prev,next today',
-              center: 'title',
-              right: ''
-            },
+            headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
             dateClick: function(info) {
               const date = info.dateStr;
               const unit = document.getElementById('unitSelect').value;
@@ -171,7 +188,6 @@
         alert('Error fetching units');
         return;
       }
-
       const selects = [document.getElementById('unitSelect'), document.getElementById('createUnit'), document.getElementById('editUnit')];
       selects.forEach(select => {
         if (select) {
@@ -184,7 +200,6 @@
           });
         }
       });
-
       document.getElementById('unitSelect').addEventListener('change', async () => {
         const selectedUnit = document.getElementById('unitSelect').value;
         await loadAllBookings(selectedUnit);
@@ -193,30 +208,13 @@
 
     async function loadAllBookings(filterUnitId = 'all') {
       let query = client.from('bookings').select('id, date, unit, name');
-
-      if (filterUnitId !== 'all') {
-        query = query.eq('unit', filterUnitId);
-      }
-
+      if (filterUnitId !== 'all') query = query.eq('unit', filterUnitId);
       const { data, error } = await query;
-      if (error) {
-        alert('Error loading bookings');
-        return;
-      }
-
+      if (error) return alert('Error loading bookings');
       calendar.removeAllEvents();
-
       data.forEach(booking => {
-        calendar.addEvent({
-          title: `Booked: ${booking.name}`,
-          start: booking.date,
-          allDay: true
-        });
+        calendar.addEvent({ title: `Booked: ${booking.name}`, start: booking.date, allDay: true });
       });
-    }
-
-    function showBookings(date, unit) {
-      alert(`Clicked on ${date}\nUnit: ${unit === 'all' ? 'All Units' : unit}`);
     }
 
     async function logout() {
@@ -224,29 +222,59 @@
       window.location.href = 'login.html';
     }
 
-    // Modal control
     function openCreateModal() {
       document.getElementById('createModal').style.display = 'flex';
     }
-
     function closeCreateModal() {
       document.getElementById('createModal').style.display = 'none';
     }
 
-    function openEditModal() {
-      document.getElementById('editModal').style.display = 'flex';
+    function openEditSelectModal() {
+      const modal = document.getElementById('editSelectModal');
+      modal.style.display = 'flex';
+      const calendarEl = document.getElementById('editCalendar');
+      if (!editCalendar) {
+        editCalendar = new FullCalendar.Calendar(calendarEl, {
+          initialView: 'dayGridMonth',
+          dateClick: async function(info) {
+            const date = info.dateStr;
+            const { data, error } = await client.from('bookings').select().eq('date', date);
+            const list = document.getElementById('editBookingList');
+            list.innerHTML = '';
+            data.forEach(booking => {
+              const li = document.createElement('li');
+              li.textContent = `${booking.name} - ${booking.email}`;
+              li.onclick = () => openEditModal(booking);
+              list.appendChild(li);
+            });
+          }
+        });
+        editCalendar.render();
+      }
+    }
+    function closeEditSelectModal() {
+      document.getElementById('editSelectModal').style.display = 'none';
     }
 
+    function openEditModal(booking) {
+      selectedEditBooking = booking;
+      document.getElementById('editName').value = booking.name;
+      document.getElementById('editEmail').value = booking.email;
+      document.getElementById('editPhone').value = booking.phone;
+      document.getElementById('editAddress').value = booking.address;
+      document.getElementById('editDate').value = booking.date;
+      document.getElementById('editUnit').value = booking.unit;
+      document.getElementById('editModal').style.display = 'flex';
+      closeEditSelectModal();
+    }
     function closeEditModal() {
       document.getElementById('editModal').style.display = 'none';
     }
 
-    // Placeholder submission handlers
     function submitCreateBooking() {
       alert('Create Booking Submitted!');
       closeCreateModal();
     }
-
     function submitEditBooking() {
       alert('Edit Booking Submitted!');
       closeEditModal();
