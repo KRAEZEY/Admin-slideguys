@@ -42,14 +42,17 @@
       top: 0; left: 0;
       width: 100%; height: 100%;
       background: rgba(0,0,0,0.5);
-      display: flex; justify-content: center; align-items: center;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
     }
     .modal-content {
       background: white;
       padding: 2rem;
       border-radius: 8px;
       width: 400px;
-      max-height: 80vh;
+      max-height: 90vh;
       overflow-y: auto;
     }
   </style>
@@ -58,14 +61,13 @@
   <header>
     <h2>📋 Admin Dashboard</h2>
     <div class="controls">
-      <button id="createBookingBtn">➕ Create Booking</button>
-      <button id="editBookingBtn">✏️ Edit Booking</button>
       <button onclick="logout()">Log Out</button>
+      <button onclick="openEditModal()">✏️ Edit Booking</button>
     </div>
   </header>
 
   <main>
-    <button onclick="toggleCalendar()">📅 View Bookings Calendar</button>
+    <button onclick="toggleCalendar()">🗕️ View Bookings Calendar</button>
 
     <div id="calendarSection" class="hidden">
       <div style="margin-top: 1rem;">
@@ -76,18 +78,29 @@
       </div>
       <div id="calendar"></div>
     </div>
+
+    <!-- Edit Booking Modal -->
+    <div id="editModal" class="modal hidden">
+      <div class="modal-content">
+        <h3>Edit Booking</h3>
+        <div id="editCalendar"></div>
+        <form id="editForm" class="hidden" onsubmit="submitEdit(event)">
+          <input type="hidden" id="editId" />
+          <label>Name:<br><input id="editName" required /></label><br>
+          <label>Email:<br><input id="editEmail" required /></label><br>
+          <label>Phone:<br><input id="editPhone" /></label><br>
+          <label>Address:<br><input id="editAddress" /></label><br>
+          <label>Date:<br><input id="editDate" type="date" required /></label><br>
+          <label>Unit:<br>
+            <select id="editUnit" required></select>
+          </label><br><br>
+          <button type="submit">Save Changes</button>
+          <button type="button" onclick="closeEditModal()">Cancel</button>
+        </form>
+      </div>
+    </div>
   </main>
 
-  <!-- Edit Modal -->
-  <div id="editModal" class="modal hidden">
-    <div class="modal-content">
-      <h3>Select Booking to Edit</h3>
-      <div id="editCalendar"></div>
-      <button onclick="closeEditModal()">Close</button>
-    </div>
-  </div>
-
-  <!-- FullCalendar and Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
@@ -98,10 +111,7 @@
     );
 
     let calendar;
-    let units = {};
-
-    document.getElementById('editBookingBtn').addEventListener('click', editBooking);
-    document.getElementById('createBookingBtn').addEventListener('click', createBooking);
+    let unitMap = {};
 
     function toggleCalendar() {
       const section = document.getElementById('calendarSection');
@@ -120,32 +130,26 @@
               center: 'title',
               right: ''
             },
-            dateClick: async function(info) {
+            dateClick: function(info) {
               const date = info.dateStr;
               const unit = document.getElementById('unitSelect').value;
-              const { data: bookings } = await fetchBookings(date, unit);
-              if (bookings.length === 0) {
-                alert(`No bookings on ${date}`);
-                return;
-              }
-              bookings.forEach(b => {
-                const unitName = units[b.unit] || b.unit;
-                alert(
-                  `📅 ${b.date}\n📍 ${unitName}\n👤 ${b.name}\n📧 ${b.email}\n📞 ${b.phone}\n🏠 ${b.address}`
-                );
-              });
+              showBookings(date, unit);
             },
-            eventClick: async function(info) {
-              const booking = info.event.extendedProps.fullData;
-              const unitName = units[booking.unit] || booking.unit;
+            eventClick: function(info) {
+              const booking = info.event.extendedProps.booking;
               alert(
-                `📅 ${booking.date}\n📍 ${unitName}\n👤 ${booking.name}\n📧 ${booking.email}\n📞 ${booking.phone}\n🏠 ${booking.address}`
+                `📋 Booking Details:\n\n` +
+                `Name: ${booking.name}\n` +
+                `Email: ${booking.email}\n` +
+                `Phone: ${booking.phone}\n` +
+                `Address: ${booking.address}\n` +
+                `Unit: ${booking.unitName || booking.unit}\n` +
+                `Date: ${booking.date}`
               );
             }
           });
           calendar.render();
           populateUnitDropdown();
-          loadAllBookings();
         }
       } else {
         section.classList.add('hidden');
@@ -153,64 +157,117 @@
       }
     }
 
-    async function fetchBookings(date, unitFilter) {
-      let query = client.from('bookings').select('*').eq('date', date);
-      if (unitFilter !== 'all') query = query.eq('unit', unitFilter);
-      const { data, error } = await query;
-      return { data: data || [], error };
-    }
-
     async function populateUnitDropdown() {
       const { data, error } = await client.from('units').select();
-      if (error) return alert('Error fetching units');
+      if (error) {
+        alert('Error fetching units');
+        return;
+      }
+
       const select = document.getElementById('unitSelect');
       data.forEach(unit => {
-        units[unit.id] = unit.name;
+        unitMap[unit.id] = unit.name;
+
         const option = document.createElement('option');
         option.value = unit.id;
         option.textContent = unit.name;
         select.appendChild(option);
       });
-      select.addEventListener('change', () => {
-        const unitId = select.value;
-        loadAllBookings(unitId);
+
+      select.addEventListener('change', async () => {
+        const selectedUnit = select.value;
+        await loadAllBookings(selectedUnit);
       });
+
+      await loadAllBookings();
     }
 
-    async function loadAllBookings(unitId = 'all') {
-      let query = client.from('bookings').select('*');
-      if (unitId !== 'all') query = query.eq('unit', unitId);
+    async function loadAllBookings(filterUnitId = 'all') {
+      let query = client.from('bookings').select(`
+        id,
+        date,
+        unit,
+        name,
+        email,
+        phone,
+        address
+      `);
+
+      if (filterUnitId !== 'all') {
+        query = query.eq('unit', filterUnitId);
+      }
+
       const { data, error } = await query;
-      if (error) return alert('Error loading bookings');
+      if (error) {
+        alert('Error loading bookings');
+        return;
+      }
+
       calendar.removeAllEvents();
+
       data.forEach(booking => {
+        const unitName = unitMap[booking.unit] || 'Unknown Unit';
         calendar.addEvent({
-          title: `📍 ${booking.name}`,
+          title: `Booked: ${booking.name}`,
           start: booking.date,
           allDay: true,
           extendedProps: {
-            fullData: booking
+            booking: { ...booking, unitName }
           }
         });
       });
     }
 
-    function createBooking() {
-      alert("Create Booking coming soon!");
+    function showBookings(date, unit) {
+      alert(`Clicked on ${date}\nUnit: ${unit === 'all' ? 'All Units' : unitMap[unit] || unit}`);
     }
 
-    function editBooking() {
+    async function logout() {
+      await client.auth.signOut();
+      window.location.href = 'login.html';
+    }
+
+    let editCalendar;
+
+    function openEditModal() {
       document.getElementById('editModal').classList.remove('hidden');
-      const editEl = document.getElementById('editCalendar');
-      editEl.innerHTML = '';
-      const editCalendar = new FullCalendar.Calendar(editEl, {
+
+      const calEl = document.getElementById('editCalendar');
+      calEl.innerHTML = '';
+      document.getElementById('editForm').classList.add('hidden');
+
+      editCalendar = new FullCalendar.Calendar(calEl, {
         initialView: 'dayGridMonth',
-        dateClick: async function(info) {
-          const { data } = await fetchBookings(info.dateStr, 'all');
-          if (!data.length) return alert("No bookings on that day.");
-          const list = data.map(b => `${b.name} (${b.email})`).join("\n");
-          const selected = prompt(`Select booking:\n${list}`);
-          alert(`Editing: ${selected}`);
+        events: async (fetchInfo, successCallback) => {
+          const { data } = await client.from('bookings').select('*');
+          const events = data.map(b => ({
+            title: b.name,
+            start: b.date,
+            allDay: true,
+            extendedProps: b
+          }));
+          successCallback(events);
+        },
+        eventClick: function(info) {
+          const b = info.event.extendedProps;
+          document.getElementById('editId').value = b.id;
+          document.getElementById('editName').value = b.name;
+          document.getElementById('editEmail').value = b.email;
+          document.getElementById('editPhone').value = b.phone;
+          document.getElementById('editAddress').value = b.address;
+          document.getElementById('editDate').value = b.date;
+
+          const unitSelect = document.getElementById('editUnit');
+          unitSelect.innerHTML = '';
+          for (const [id, name] of Object.entries(unitMap)) {
+            const opt = document.createElement('option');
+            opt.value = id;
+            opt.textContent = name;
+            if (id === b.unit) opt.selected = true;
+            unitSelect.appendChild(opt);
+          }
+
+          document.getElementById('editForm').classList.remove('hidden');
         }
       });
       editCalendar.render();
@@ -220,9 +277,23 @@
       document.getElementById('editModal').classList.add('hidden');
     }
 
-    async function logout() {
-      await client.auth.signOut();
-      window.location.href = 'login.html';
+    async function submitEdit(e) {
+      e.preventDefault();
+      const id = document.getElementById('editId').value;
+      const updates = {
+        name: document.getElementById('editName').value,
+        email: document.getElementById('editEmail').value,
+        phone: document.getElementById('editPhone').value,
+        address: document.getElementById('editAddress').value,
+        date: document.getElementById('editDate').value,
+        unit: document.getElementById('editUnit').value
+      };
+
+      const { error } = await client.from('bookings').update(updates).eq('id', id);
+      if (error) return alert('Error updating booking');
+      alert('Booking updated!');
+      closeEditModal();
+      await loadAllBookings(document.getElementById('unitSelect').value);
     }
   </script>
 </body>
