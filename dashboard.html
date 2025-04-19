@@ -4,116 +4,143 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Admin Dashboard</title>
-  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
+
+  <!-- Replacing the problematic Font Awesome kit with CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
   <style>
     body {
       font-family: Arial, sans-serif;
+      background-color: #f8f8f8;
+      margin: 0;
       padding: 2rem;
-      background-color: #f9f9f9;
     }
 
-    h2 {
-      margin-bottom: 1rem;
-    }
-
-    .modal {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
-      display: none;
-      justify-content: center;
+    h1 {
+      display: flex;
       align-items: center;
-      z-index: 9999;
+      gap: 0.5rem;
     }
 
-    .modal-content {
-      background: #ffffff;
-      padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-      max-width: 400px;
-      width: 100%;
-      font-family: Arial, sans-serif;
-      animation: fadeIn 0.3s ease-out;
-    }
-
-    .modal-content h3 {
-      margin-top: 0;
+    .toolbar {
       margin-bottom: 1rem;
-      font-size: 1.5rem;
-      text-align: center;
     }
 
-    .modal-content input,
-    .modal-content select {
-      width: 100%;
-      margin-bottom: 1rem;
-      padding: 0.7rem;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      font-size: 1rem;
-    }
-
-    .modal-content button {
-      padding: 0.6rem 1rem;
-      border: none;
-      border-radius: 8px;
+    button {
+      margin-right: 1rem;
       cursor: pointer;
-      font-size: 0.95rem;
     }
 
-    .modal-content button:first-of-type {
-      background-color: #4CAF50;
-      color: white;
-      margin-right: 0.5rem;
-    }
-
-    .modal-content button:last-of-type {
-      background-color: #e0e0e0;
-      color: #333;
-    }
-
-    .modal-content button:hover {
-      opacity: 0.9;
-    }
-
-    @keyframes fadeIn {
-      from { transform: scale(0.95); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
+    #calendar {
+      max-width: 900px;
+      margin: 40px auto;
+      display: none;
     }
   </style>
 </head>
 <body>
-  <h2>📋 Admin Dashboard</h2>
+  <h1><i class="fas fa-clipboard-list"></i> Admin Dashboard</h1>
 
-  <!-- Booking Calendar and Filter UI Here -->
-  <button id="toggleCalendarBtn">📅 View Bookings Calendar</button>
-  <label for="unitFilter">Filter by Unit:</label>
-  <select id="unitFilter">
-    <option value="all">All Units</option>
-    <!-- dynamically populated -->
-  </select>
-  <div id="calendar" style="margin-top: 1rem;"></div>
-
-  <!-- Edit Booking Modal -->
-  <div id="editModal" class="modal">
-    <div class="modal-content">
-      <h3>Edit Booking</h3>
-      <input type="text" id="editName" placeholder="Full Name" />
-      <input type="email" id="editEmail" placeholder="Email Address" />
-      <input type="tel" id="editPhone" placeholder="Phone Number" />
-      <input type="text" id="editAddress" placeholder="Address" />
-      <input type="date" id="editDate" />
-      <select id="editUnit"></select>
-      <button id="saveEdit"><i class="fas fa-save"></i> Save</button>
-      <button id="cancelEdit">Cancel</button>
-    </div>
+  <div class="toolbar">
+    <button id="toggleCalendar"><i class="fas fa-calendar-alt"></i> View Bookings Calendar</button>
+    Filter by Unit:
+    <select id="unitFilter">
+      <option value="all">All Units</option>
+    </select>
+    <button id="logoutBtn" style="float: right;"><i class="fas fa-sign-out-alt"></i> Logout</button>
   </div>
 
-  <!-- Scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+  <div id="calendar"></div>
 
-  <!-- Your working JavaScript code should already be here -->
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js'
+
+    const supabaseUrl = 'https://vaobmohukgcqfvnclqyh.supabase.co'
+    const supabaseKey = 'YOUR_SUPABASE_KEY'
+    const supabase = createClient(supabaseUrl, supabaseKey)
+
+    const calendarEl = document.getElementById('calendar')
+    const toggleBtn = document.getElementById('toggleCalendar')
+    const unitFilter = document.getElementById('unitFilter')
+    let calendar
+
+    async function loadUnits() {
+      const { data, error } = await supabase.from('units').select('*')
+      if (data) {
+        data.forEach(unit => {
+          const opt = document.createElement('option')
+          opt.value = unit.id
+          opt.textContent = unit.name
+          unitFilter.appendChild(opt)
+        })
+      }
+    }
+
+    async function loadBookings(unitId = 'all') {
+      let query = supabase.from('bookings').select('id, date, unit_id, customer_name')
+      if (unitId !== 'all') {
+        query = query.eq('unit_id', unitId)
+      }
+      const { data, error } = await query
+      if (data) {
+        const events = data.map(booking => ({
+          id: booking.id,
+          title: `Booking: ${booking.customer_name}`,
+          start: booking.date,
+          allDay: true
+        }))
+        calendar.removeAllEvents()
+        calendar.addEventSource(events)
+      }
+    }
+
+    toggleBtn.addEventListener('click', () => {
+      calendarEl.style.display = calendarEl.style.display === 'none' ? 'block' : 'none'
+      calendar.render()
+    })
+
+    unitFilter.addEventListener('change', () => {
+      const unitId = unitFilter.value
+      loadBookings(unitId)
+    })
+
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await supabase.auth.signOut()
+      window.location.reload()
+    })
+
+    document.addEventListener('DOMContentLoaded', async function () {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        const email = prompt("Email:")
+        const password = prompt("Password:")
+        const { error } = await supabase.auth.signInWithPassword({ email, password })
+        if (error) {
+          alert('Login failed')
+          return
+        }
+      }
+
+      calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        height: 650,
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: ''
+        },
+        eventClick: function(info) {
+          alert('Booking ID: ' + info.event.id)
+        }
+      })
+      calendar.render()
+
+      await loadUnits()
+      await loadBookings()
+    })
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 </body>
 </html>
