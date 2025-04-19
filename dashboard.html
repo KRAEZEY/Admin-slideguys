@@ -42,18 +42,24 @@
     .modal {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.5);
+      background: rgba(0, 0, 0, 0.6);
       display: none;
       justify-content: center;
       align-items: center;
+      z-index: 9999;
+      pointer-events: auto;
     }
+
     .modal-content {
       background: white;
-      padding: 1rem;
-      border-radius: 8px;
+      padding: 1.5rem;
+      border-radius: 10px;
       max-width: 400px;
       width: 100%;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+      z-index: 10000;
     }
+
     .modal-content h3 {
       margin-top: 0;
     }
@@ -110,7 +116,7 @@
   <script>
     const client = supabase.createClient(
       'https://vaobmohukgcqfvnclqyh.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTcyNzksImV4cCI6MjA2MDMzMzI3OX0.6pl5QBTVUr8wu3bn4kXhI2kPE5qf97PrIbUw7-0382M'
+      'your-public-anon-key-here' // replace with your actual anon key
     );
 
     let calendar;
@@ -183,15 +189,7 @@
     }
 
     async function loadAllBookings(filterUnitId = 'all') {
-      let query = client.from('bookings').select(`
-        id,
-        date,
-        unit,
-        name,
-        email,
-        phone,
-        address
-      `);
+      let query = client.from('bookings').select('id, date, unit, name, email, phone, address');
 
       if (filterUnitId !== 'all') {
         query = query.eq('unit', filterUnitId);
@@ -231,10 +229,12 @@
       document.getElementById('editDate').value = booking.date;
       document.getElementById('editUnit').value = booking.unit;
       document.getElementById('editModal').style.display = 'flex';
+      document.body.style.overflow = 'hidden';
     }
 
     function closeModal() {
       document.getElementById('editModal').style.display = 'none';
+      document.body.style.overflow = '';
       currentEditId = null;
     }
 
