@@ -94,6 +94,18 @@
               const date = info.dateStr;
               const unit = document.getElementById('unitSelect').value;
               showBookings(date, unit);
+            },
+            eventClick: function(info) {
+              const booking = info.event.extendedProps.booking;
+              alert(
+                `📋 Booking Details:\n\n` +
+                `Name: ${booking.name}\n` +
+                `Email: ${booking.email}\n` +
+                `Phone: ${booking.phone}\n` +
+                `Address: ${booking.address}\n` +
+                `Unit: ${booking.unit}\n` +
+                `Date: ${booking.date}`
+              );
             }
           });
           calendar.render();
@@ -132,7 +144,10 @@
         id,
         date,
         unit,
-        name
+        name,
+        email,
+        phone,
+        address
       `);
 
       if (filterUnitId !== 'all') {
@@ -152,7 +167,10 @@
         calendar.addEvent({
           title: `Booked: ${booking.name}`,
           start: booking.date,
-          allDay: true
+          allDay: true,
+          extendedProps: {
+            booking: booking
+          }
         });
       });
     }
