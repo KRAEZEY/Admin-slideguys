@@ -72,6 +72,7 @@
     );
 
     let calendar;
+    let unitMap = {}; // Map unit UUIDs to names
 
     function toggleCalendar() {
       const section = document.getElementById('calendarSection');
@@ -103,14 +104,13 @@
                 `Email: ${booking.email}\n` +
                 `Phone: ${booking.phone}\n` +
                 `Address: ${booking.address}\n` +
-                `Unit: ${booking.unit}\n` +
+                `Unit: ${booking.unitName || booking.unit}\n` +
                 `Date: ${booking.date}`
               );
             }
           });
           calendar.render();
           populateUnitDropdown();
-          loadAllBookings();
         }
       } else {
         section.classList.add('hidden');
@@ -127,6 +127,8 @@
 
       const select = document.getElementById('unitSelect');
       data.forEach(unit => {
+        unitMap[unit.id] = unit.name;
+
         const option = document.createElement('option');
         option.value = unit.id;
         option.textContent = unit.name;
@@ -137,6 +139,8 @@
         const selectedUnit = select.value;
         await loadAllBookings(selectedUnit);
       });
+
+      await loadAllBookings();
     }
 
     async function loadAllBookings(filterUnitId = 'all') {
@@ -156,7 +160,6 @@
 
       const { data, error } = await query;
       if (error) {
-        console.error('Error loading bookings:', error.message);
         alert('Error loading bookings');
         return;
       }
@@ -164,19 +167,20 @@
       calendar.removeAllEvents();
 
       data.forEach(booking => {
+        const unitName = unitMap[booking.unit] || 'Unknown Unit';
         calendar.addEvent({
           title: `Booked: ${booking.name}`,
           start: booking.date,
           allDay: true,
           extendedProps: {
-            booking: booking
+            booking: { ...booking, unitName }
           }
         });
       });
     }
 
     function showBookings(date, unit) {
-      alert(`Clicked on ${date}\nUnit: ${unit === 'all' ? 'All Units' : unit}`);
+      alert(`Clicked on ${date}\nUnit: ${unit === 'all' ? 'All Units' : unitMap[unit] || unit}`);
     }
 
     async function logout() {
