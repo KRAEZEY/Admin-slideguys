@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -217,7 +217,7 @@
       data.forEach(booking => {
         const unitName = unitMap[booking.unit] || 'Unknown Unit';
         calendar.addEvent({
-          title: `Booked: ${booking.name}`,
+          title: `${booking.name}`,
           start: booking.date,
           allDay: true,
           extendedProps: {
