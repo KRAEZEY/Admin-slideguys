@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -37,6 +37,7 @@
     .hidden {
       display: none;
     }
+
     .modal {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -69,25 +70,6 @@
       margin-top: 0.5rem;
       margin-right: 0.5rem;
     }
-    .legend {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-      margin-top: 1rem;
-      align-items: center;
-    }
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-      font-size: 0.9rem;
-    }
-    .legend-dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      display: inline-block;
-    }
   </style>
 </head>
 <body>
@@ -108,8 +90,6 @@
           <option value="all">All Units</option>
         </select>
       </div>
-
-      <div class="legend" id="unitLegend"></div>
       <div id="calendar"></div>
     </div>
   </main>
@@ -136,15 +116,11 @@
   <script>
     const client = supabase.createClient(
       'https://vaobmohukgcqfvnclqyh.supabase.co',
-      'YOUR_PUBLIC_ANON_KEY_HERE' // Replace with your actual key
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTcyNzksImV4cCI6MjA2MDMzMzI3OX0.6pl5QBTVUr8wu3bn4kXhI2kPE5qf97PrIbUw7-0382M'
     );
 
     let calendar;
     let unitMap = {};
-    let unitColors = {};
-    let colorIndex = 0;
-    const colorPalette = ['#e6194b','#3cb44b','#ffe119','#4363d8','#f58231','#911eb4','#46f0f0','#f032e6','#bcf60c','#fabebe'];
-
     let currentEditId = null;
 
     function toggleCalendar() {
@@ -192,19 +168,11 @@
 
       const select = document.getElementById('unitSelect');
       const editUnit = document.getElementById('editUnit');
-      const legend = document.getElementById('unitLegend');
       select.innerHTML = '<option value="all">All Units</option>';
       editUnit.innerHTML = '';
-      legend.innerHTML = '';
-
-      colorIndex = 0;
-      unitMap = {};
-      unitColors = {};
 
       data.forEach(unit => {
         unitMap[unit.id] = unit.name;
-        unitColors[unit.id] = colorPalette[colorIndex % colorPalette.length];
-        colorIndex++;
 
         const option = document.createElement('option');
         option.value = unit.id;
@@ -213,11 +181,6 @@
 
         const editOption = option.cloneNode(true);
         editUnit.appendChild(editOption);
-
-        const legendItem = document.createElement('div');
-        legendItem.classList.add('legend-item');
-        legendItem.innerHTML = `<span class="legend-dot" style="background:${unitColors[unit.id]}"></span>${unit.name}`;
-        legend.appendChild(legendItem);
       });
 
       select.addEventListener('change', async () => {
@@ -230,7 +193,13 @@
 
     async function loadAllBookings(filterUnitId = 'all') {
       let query = client.from('bookings').select(`
-        id, date, unit, name, email, phone, address
+        id,
+        date,
+        unit,
+        name,
+        email,
+        phone,
+        address
       `);
 
       if (filterUnitId !== 'all') {
@@ -246,14 +215,11 @@
       calendar.removeAllEvents();
 
       data.forEach(booking => {
-        const unitColor = unitColors[booking.unit] || '#000';
         const unitName = unitMap[booking.unit] || 'Unknown Unit';
         calendar.addEvent({
-          title: `\u25CF ${booking.name}`,
+          title: `${booking.name}`,
           start: booking.date,
           allDay: true,
-          color: unitColor,
-          textColor: '#000',
           extendedProps: {
             booking: { ...booking, unitName }
           }
