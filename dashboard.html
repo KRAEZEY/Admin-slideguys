@@ -114,12 +114,12 @@
   <script>
     const bookingClient = supabase.createClient(
       'https://vaobmohukgcqfvnclqyh.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTcyNzksImV4cCI6MjA2MDMzMzI3OX0.6pl5QBTVUr8wu3bn4kXhI2kPE5qf97PrIbUw7-0382M'
+      'YOUR_BOOKING_API_KEY'
     );
 
     const waiverClient = supabase.createClient(
       'https://hmcidvwuuirbqghjxxow.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtY2lkdnd1dWlyYnFnaGp4eG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMTU3MTYsImV4cCI6MjA2MjY5MTcxNn0.v45HvSFMpwdaw1zDbOZDcHtkAuY44X6H5FIKmH0JPEk'
+      'YOUR_WAIVER_API_KEY'
     );
 
     let calendar;
@@ -242,7 +242,7 @@
             },
             eventClick: function(info) {
               const { children } = info.event.extendedProps;
-              alert(`Child(ren): ${children}`);
+              alert(`Children:\n${children.join('\n')}`);
             }
           });
           waiverCalendar.render();
@@ -258,18 +258,33 @@
           return;
         }
 
-        waiverCalendar.removeAllEvents();
+        const grouped = {};
 
         data.forEach(waiver => {
+          const key = `${waiver.parent_first_name} ${waiver.parent_last_name}|${waiver.signed_date}`;
+          if (!grouped[key]) {
+            grouped[key] = {
+              parent: `${waiver.parent_first_name} ${waiver.parent_last_name}`,
+              date: waiver.signed_date,
+              children: []
+            };
+          }
+          grouped[key].children.push(`${waiver.child_first_name} ${waiver.child_last_name}`);
+        });
+
+        waiverCalendar.removeAllEvents();
+
+        Object.values(grouped).forEach(entry => {
           waiverCalendar.addEvent({
-            title: `${waiver.parent_first_name} ${waiver.parent_last_name}`,
-            start: waiver.signed_date,
+            title: entry.parent,
+            start: entry.date,
             allDay: true,
             extendedProps: {
-              children: `${waiver.child_first_name} ${waiver.child_last_name}`
+              children: entry.children
             }
           });
         });
+
       } else {
         section.classList.add('hidden');
       }
