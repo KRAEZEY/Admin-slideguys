@@ -37,7 +37,6 @@
     .hidden {
       display: none;
     }
-
     .modal {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -82,6 +81,7 @@
 
   <main>
     <button onclick="toggleCalendar()">📅 View Bookings Calendar</button>
+    <button onclick="loadWaivers()">📄 View Waivers</button>
 
     <div id="calendarSection" class="hidden">
       <div style="margin-top: 1rem;">
@@ -91,6 +91,11 @@
         </select>
       </div>
       <div id="calendar"></div>
+    </div>
+
+    <div id="waiverSection" class="hidden">
+      <h3>Submitted Waivers</h3>
+      <ul id="waiverList" style="padding-left: 1rem;"></ul>
     </div>
   </main>
 
@@ -292,6 +297,40 @@
         closeModal();
         loadAllBookings();
       }
+    }
+
+    async function loadWaivers() {
+      const section = document.getElementById('waiverSection');
+      const list = document.getElementById('waiverList');
+      list.innerHTML = '';
+
+      if (section.classList.contains('hidden')) {
+        section.classList.remove('hidden');
+      } else {
+        section.classList.add('hidden');
+        return;
+      }
+
+      const { data, error } = await client
+        .from('waivers')
+        .select()
+        .order('submitted_at', { ascending: false });
+
+      if (error) {
+        alert('Failed to load waivers: ' + error.message);
+        return;
+      }
+
+      if (data.length === 0) {
+        list.innerHTML = '<li>No waivers submitted yet.</li>';
+        return;
+      }
+
+      data.forEach(waiver => {
+        const li = document.createElement('li');
+        li.textContent = `${waiver.child_first_name} ${waiver.child_last_name} — ${waiver.signed_date} (Parent: ${waiver.parent_first_name} ${waiver.parent_last_name})`;
+        list.appendChild(li);
+      });
     }
 
     async function logout() {
