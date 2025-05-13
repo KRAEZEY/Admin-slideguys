@@ -239,6 +239,10 @@
               left: 'prev,next today',
               center: 'title',
               right: ''
+            },
+            eventClick: function(info) {
+              const { children } = info.event.extendedProps;
+              alert(`Child(ren): ${children}`);
             }
           });
           waiverCalendar.render();
@@ -260,7 +264,10 @@
           waiverCalendar.addEvent({
             title: `${waiver.parent_first_name} ${waiver.parent_last_name}`,
             start: waiver.signed_date,
-            allDay: true
+            allDay: true,
+            extendedProps: {
+              children: `${waiver.child_first_name} ${waiver.child_last_name}`
+            }
           });
         });
       } else {
