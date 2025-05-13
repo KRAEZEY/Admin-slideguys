@@ -119,9 +119,16 @@
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
   <script>
-    const client = supabase.createClient(
+    // Booking Supabase Project (original)
+    const bookingClient = supabase.createClient(
       'https://vaobmohukgcqfvnclqyh.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTcyNzksImV4cCI6MjA2MDMzMzI3OX0.6pl5QBTVUr8wu3bn4kXhI2kPE5qf97PrIbUw7-0382M'
+    );
+
+    // Waiver Supabase Project (new)
+    const waiverClient = supabase.createClient(
+      'https://hmcidvwuuirbqghjxxow.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtY2lkdnd1dWlyYnFnaGp4eG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMTU3MTYsImV4cCI6MjA2MjY5MTcxNn0.v45HvSFMpwdaw1zDbOZDcHtkAuY44X6H5FIKmH0JPEk'
     );
 
     let calendar;
@@ -165,7 +172,7 @@
     }
 
     async function populateUnitDropdown() {
-      const { data, error } = await client.from('units').select();
+      const { data, error } = await bookingClient.from('units').select();
       if (error) {
         alert('Error fetching units');
         return;
@@ -197,7 +204,7 @@
     }
 
     async function loadAllBookings(filterUnitId = 'all') {
-      let query = client.from('bookings').select(`
+      let query = bookingClient.from('bookings').select(`
         id,
         date,
         unit,
@@ -232,6 +239,40 @@
       });
     }
 
+    async function loadWaivers() {
+      const section = document.getElementById('waiverSection');
+      const list = document.getElementById('waiverList');
+      list.innerHTML = '';
+
+      if (section.classList.contains('hidden')) {
+        section.classList.remove('hidden');
+      } else {
+        section.classList.add('hidden');
+        return;
+      }
+
+      const { data, error } = await waiverClient
+        .from('waivers')
+        .select()
+        .order('submitted_at', { ascending: false });
+
+      if (error) {
+        alert('Failed to load waivers: ' + error.message);
+        return;
+      }
+
+      if (data.length === 0) {
+        list.innerHTML = '<li>No waivers submitted yet.</li>';
+        return;
+      }
+
+      data.forEach(waiver => {
+        const li = document.createElement('li');
+        li.textContent = `${waiver.child_first_name} ${waiver.child_last_name} — ${waiver.signed_date} (Parent: ${waiver.parent_first_name} ${waiver.parent_last_name})`;
+        list.appendChild(li);
+      });
+    }
+
     function openModal(booking) {
       currentEditId = booking.id || null;
       document.getElementById('editName').value = booking.name || '';
@@ -258,7 +299,7 @@
         unit: document.getElementById('editUnit').value
       };
 
-      const { error } = await client.from('bookings').update(updated).eq('id', currentEditId);
+      const { error } = await bookingClient.from('bookings').update(updated).eq('id', currentEditId);
       if (error) {
         alert('Failed to save booking');
       } else {
@@ -277,7 +318,7 @@
         unit: document.getElementById('editUnit').value
       };
 
-      const { error } = await client.from('bookings').insert(newBooking);
+      const { error } = await bookingClient.from('bookings').insert(newBooking);
       if (error) {
         alert('Failed to create booking');
       } else {
@@ -290,7 +331,7 @@
       if (!currentEditId) return;
       if (!confirm("Are you sure you want to delete this booking?")) return;
 
-      const { error } = await client.from('bookings').delete().eq('id', currentEditId);
+      const { error } = await bookingClient.from('bookings').delete().eq('id', currentEditId);
       if (error) {
         alert('Failed to delete booking');
       } else {
@@ -299,42 +340,8 @@
       }
     }
 
-    async function loadWaivers() {
-      const section = document.getElementById('waiverSection');
-      const list = document.getElementById('waiverList');
-      list.innerHTML = '';
-
-      if (section.classList.contains('hidden')) {
-        section.classList.remove('hidden');
-      } else {
-        section.classList.add('hidden');
-        return;
-      }
-
-      const { data, error } = await client
-        .from('waivers')
-        .select()
-        .order('submitted_at', { ascending: false });
-
-      if (error) {
-        alert('Failed to load waivers: ' + error.message);
-        return;
-      }
-
-      if (data.length === 0) {
-        list.innerHTML = '<li>No waivers submitted yet.</li>';
-        return;
-      }
-
-      data.forEach(waiver => {
-        const li = document.createElement('li');
-        li.textContent = `${waiver.child_first_name} ${waiver.child_last_name} — ${waiver.signed_date} (Parent: ${waiver.parent_first_name} ${waiver.parent_last_name})`;
-        list.appendChild(li);
-      });
-    }
-
     async function logout() {
-      await client.auth.signOut();
+      await bookingClient.auth.signOut();
       window.location.href = 'login.html';
     }
   </script>
