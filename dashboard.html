@@ -30,9 +30,8 @@
       display: flex;
       gap: 1rem;
     }
-    #calendar {
+    #calendar, #waiverCalendar {
       margin-top: 2rem;
-      display: none;
     }
     .hidden {
       display: none;
@@ -45,7 +44,6 @@
       justify-content: center;
       align-items: center;
       z-index: 9999;
-      pointer-events: auto;
     }
     .modal-content {
       background: white;
@@ -53,10 +51,6 @@
       border-radius: 8px;
       max-width: 400px;
       width: 100%;
-      pointer-events: auto;
-    }
-    .modal-content h3 {
-      margin-top: 0;
     }
     .modal-content input,
     .modal-content select {
@@ -93,9 +87,9 @@
       <div id="calendar"></div>
     </div>
 
-    <div id="waiverSection" class="hidden">
-      <h3>Submitted Waivers</h3>
-      <ul id="waiverList" style="padding-left: 1rem;"></ul>
+    <div id="waiverCalendarSection" class="hidden">
+      <h3>Signed Waivers Calendar</h3>
+      <div id="waiverCalendar"></div>
     </div>
   </main>
 
@@ -117,21 +111,19 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-
   <script>
-    // Bookings DB (original)
     const bookingClient = supabase.createClient(
       'https://vaobmohukgcqfvnclqyh.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTcyNzksImV4cCI6MjA2MDMzMzI3OX0.6pl5QBTVUr8wu3bn4kXhI2kPE5qf97PrIbUw7-0382M'
+      'YOUR_BOOKING_API_KEY'
     );
 
-    // Waivers DB (correct one)
     const waiverClient = supabase.createClient(
       'https://hmcidvwuuirbqghjxxow.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtY2lkdnd1dWlyYnFnaGp4eG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMTU3MTYsImV4cCI6MjA2MjY5MTcxNn0.v45HvSFMpwdaw1zDbOZDcHtkAuY44X6H5FIKmH0JPEk'
+      'YOUR_WAIVER_API_KEY'
     );
 
     let calendar;
+    let waiverCalendar;
     let unitMap = {};
     let currentEditId = null;
 
@@ -205,13 +197,7 @@
 
     async function loadAllBookings(filterUnitId = 'all') {
       let query = bookingClient.from('bookings').select(`
-        id,
-        date,
-        unit,
-        name,
-        email,
-        phone,
-        address
+        id, date, unit, name, email, phone, address
       `);
 
       if (filterUnitId !== 'all') {
@@ -240,37 +226,46 @@
     }
 
     async function loadWaivers() {
-      const section = document.getElementById('waiverSection');
-      const list = document.getElementById('waiverList');
-      list.innerHTML = '';
+      const section = document.getElementById('waiverCalendarSection');
+      const calendarEl = document.getElementById('waiverCalendar');
 
       if (section.classList.contains('hidden')) {
         section.classList.remove('hidden');
+
+        if (!waiverCalendar) {
+          waiverCalendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+              left: 'prev,next today',
+              center: 'title',
+              right: ''
+            }
+          });
+          waiverCalendar.render();
+        }
+
+        const { data, error } = await waiverClient
+          .from('waivers')
+          .select()
+          .order('signed_date', { ascending: true });
+
+        if (error) {
+          alert('Failed to load waivers: ' + error.message);
+          return;
+        }
+
+        waiverCalendar.removeAllEvents();
+
+        data.forEach(waiver => {
+          waiverCalendar.addEvent({
+            title: `${waiver.parent_first_name} ${waiver.parent_last_name}`,
+            start: waiver.signed_date,
+            allDay: true
+          });
+        });
       } else {
         section.classList.add('hidden');
-        return;
       }
-
-      const { data, error } = await waiverClient
-        .from('waivers')
-        .select()
-        .order('submitted_at', { ascending: false });
-
-      if (error) {
-        alert('Failed to load waivers: ' + error.message);
-        return;
-      }
-
-      if (data.length === 0) {
-        list.innerHTML = '<li>No waivers submitted yet.</li>';
-        return;
-      }
-
-      data.forEach(waiver => {
-        const li = document.createElement('li');
-        li.textContent = `${waiver.child_first_name} ${waiver.child_last_name} — ${waiver.signed_date} (Parent: ${waiver.parent_first_name} ${waiver.parent_last_name})`;
-        list.appendChild(li);
-      });
     }
 
     function openModal(booking) {
