@@ -100,6 +100,7 @@
       <input type="email" id="editEmail" placeholder="Email" />
       <input type="tel" id="editPhone" placeholder="Phone" />
       <input type="text" id="editAddress" placeholder="Address" />
+      <input type="text" id="editCity" placeholder="City" />
       <input type="date" id="editDate" />
       <select id="editUnit"></select>
       <button onclick="saveBookingChanges()">💾 Save</button>
@@ -197,7 +198,7 @@
 
     async function loadAllBookings(filterUnitId = 'all') {
       let query = bookingClient.from('bookings').select(`
-        id, date, unit, name, email, phone, address
+        id, date, unit, name, email, phone, address,city
       `);
 
       if (filterUnitId !== 'all') {
@@ -296,6 +297,7 @@
       document.getElementById('editEmail').value = booking.email || '';
       document.getElementById('editPhone').value = booking.phone || '';
       document.getElementById('editAddress').value = booking.address || '';
+      document.getElementById('editCity').value = booking.city || '';
       document.getElementById('editDate').value = booking.date || '';
       document.getElementById('editUnit').value = booking.unit || '';
       document.getElementById('editModal').style.display = 'flex';
@@ -312,6 +314,7 @@
         email: document.getElementById('editEmail').value,
         phone: document.getElementById('editPhone').value,
         address: document.getElementById('editAddress').value,
+        city: document.getElementById('editCity').value,
         date: document.getElementById('editDate').value,
         unit: document.getElementById('editUnit').value
       };
@@ -331,6 +334,7 @@
         email: document.getElementById('editEmail').value,
         phone: document.getElementById('editPhone').value,
         address: document.getElementById('editAddress').value,
+        city: document.getElementById('editCity').value,
         date: document.getElementById('editDate').value,
         unit: document.getElementById('editUnit').value
       };
