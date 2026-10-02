@@ -67,6 +67,7 @@
     .unit-drag-handle{touch-action:none;cursor:grab;padding:12px;font-size:20px}.managed-unit.dragging{background:#e1efff;outline:2px solid #1674ca}.managed-unit>span{flex:1;min-width:0}.unit-row-actions{display:flex;gap:4px;flex-wrap:wrap}.unit-row-actions button{padding:8px} @media(max-width:500px){.managed-unit{flex-wrap:wrap}.unit-row-actions{margin-left:auto}}
     .modal-content{box-sizing:border-box;width:min(400px,calc(100vw - 32px));max-height:90vh;overflow-y:auto}
     #bookingPaymentSummary{box-sizing:border-box;width:100%;background:#f1f6fa;border:1px solid #cbd5df;border-radius:5px;padding:12px;margin:0 0 16px;font-size:16px;font-weight:700;line-height:1.4}#bookingPaymentSummary.payment-due{background:#fff4dd;border-color:#b66a00;color:#804400}#bookingPaymentSummary.payment-paid{background:#e7f6ec;border-color:#238449;color:#145c31}
+    .unit-list-photo{position:relative;flex:0 0 64px;width:64px;height:64px;overflow:hidden;border:1px solid #d4e1ea;border-radius:6px;background:#f3f6f8;display:flex;align-items:center;justify-content:center}.unit-list-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:white}.unit-list-photo span{font-size:11px;color:#607080}.managed-unit>span{overflow-wrap:anywhere}
   </style>
 </head>
 <body>
@@ -547,7 +548,15 @@
 
         if(unit.is_hidden){const badge=document.createElement('small');badge.textContent='Hidden from customers';badge.style.display='block';label.append(badge);}
         const edit=document.createElement('button');edit.type='button';edit.textContent='Edit';edit.disabled=orderDirty||orderBusy;edit.addEventListener('click',()=>editManagedUnit(unit.id));controls.append(edit);
-        handle.disabled=orderBusy;row.append(handle,label,controls);list.append(row);
+        handle.disabled=orderBusy;const photo=document.createElement('div');photo.className='unit-list-photo';
+        const fallback=document.createElement('span');fallback.textContent='No photo';photo.append(fallback);
+        if(unit.thumbnail_url){
+          const img=document.createElement('img');img.alt=unit.name;img.loading='lazy';img.draggable=false;
+          img.addEventListener('load',()=>{fallback.hidden=true;});
+          img.addEventListener('error',()=>{img.remove();fallback.hidden=false;});
+          img.src=unit.thumbnail_url;photo.append(img);
+        }
+        row.append(handle,photo,label,controls);list.append(row);
       });updateOrderControls();
     }
     function cancelManagedOrder(){
