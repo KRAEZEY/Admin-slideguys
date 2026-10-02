@@ -63,6 +63,7 @@
       margin-top: 0.5rem;
       margin-right: 0.5rem;
     }
+    #unitEditor input{display:block;box-sizing:border-box;width:100%;padding:10px;margin:6px 0 16px} .managed-unit{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #ddd} .managed-unit span{overflow-wrap:anywhere}
   </style>
 </head>
 <body>
@@ -75,7 +76,27 @@
     </div>
   </header>
 
-  <main><section><h3>Payment follow-up</h3><button type="button" onclick="loadPaymentStatus()">Check payments and emails</button><div id="paymentFollowup" role="status"></div></section>
+  <main><section id="unitManager" style="margin:24px 0;padding:20px;border:1px solid #ccc;border-radius:10px">
+  <h3>Units &amp; pricing</h3>
+  <p>Set a rental price and non-refundable deposit for each unit. Changes apply to new checkouts; payments already started keep their saved amounts.</p>
+  <button type="button" onclick="loadManagedUnits()">Load units</button>
+  <button type="button" onclick="editManagedUnit()">Add unit</button>
+  <p id="unitManagerStatus" role="status"></p>
+  <div id="managedUnitList"></div>
+  <form id="unitEditor" hidden style="max-width:520px;margin-top:20px">
+    <h4 id="unitEditorTitle">Edit unit</h4>
+    <fieldset id="unitEditorFields" style="border:0;padding:0">
+      <label for="unitName">Unit name</label><input id="unitName" required maxlength="300">
+      <label for="unitPrice">Rental price ($)</label><input id="unitPrice" type="number" min="0.01" max="1000000" step="0.01" required>
+      <label for="unitDeposit">Deposit ($)</label><input id="unitDeposit" type="number" min="0.01" step="0.01" required>
+      <p>The deposit must be greater than $0 and no more than the rental price. For a $1 test, set both amounts to $1.</p>
+      <label for="unitPhoto">Photo URL</label><input id="unitPhoto" type="url" maxlength="2000" placeholder="https://…">
+      <label for="unitOrder">Display order</label><input id="unitOrder" maxlength="100">
+      <button type="submit">Save unit</button><button type="button" onclick="document.getElementById('unitEditor').hidden=true">Cancel</button>
+    </fieldset>
+  </form>
+</section>
+<section><h3>Payment follow-up</h3><button type="button" onclick="loadPaymentStatus()">Check payments and emails</button><div id="paymentFollowup" role="status"></div></section>
     <button onclick="toggleCalendar()">📅 View Bookings Calendar</button>
     <button onclick="loadWaivers()">📄 View Waivers</button>
 
@@ -203,6 +224,7 @@
 
       const select = document.getElementById('unitSelect');
       const editUnit = document.getElementById('editUnit');
+      const priorFilter=select.value,priorEdit=editUnit.value;
       select.innerHTML = '<option value="all">All Units</option>';
       editUnit.innerHTML = '';
 
@@ -218,10 +240,12 @@
         editUnit.appendChild(editOption);
       });
 
-      select.addEventListener('change', async () => {
+      select.value=data.some(u=>u.id===priorFilter)?priorFilter:'all';
+      if(data.some(u=>u.id===priorEdit))editUnit.value=priorEdit;
+      select.onchange = async () => {
         const selectedUnit = select.value;
         await loadAllBookings(selectedUnit);
-      });
+      };
 
       await loadAllBookings();
     }
@@ -422,6 +446,52 @@
         }
       } catch (_) { target.textContent='Could not load payment status. Check the connection and try again.'; }
     }
+    let managedUnits=[],editingUnitId=null,creatingUnit=false,unitSaveBusy=false;
+    const unitMoney=n=>'$'+Number(n).toFixed(2);
+    async function loadManagedUnits(){
+      if(!(await verifyAdmin()))return;
+      const status=document.getElementById('unitManagerStatus');status.textContent='Loading units…';
+      try{
+        const {data,error}=await bookingClient.from('units').select('id,name,price,deposit_amount,thumbnail_url,order').order('order',{ascending:true});
+        if(error)throw error;managedUnits=data||[];
+        const list=document.getElementById('managedUnitList');list.replaceChildren();
+        for(const unit of managedUnits){
+          const row=document.createElement('div');row.className='managed-unit';
+          const label=document.createElement('span');label.textContent=unit.name+' · Rental '+unitMoney(unit.price)+' · Deposit '+unitMoney(unit.deposit_amount);
+          const button=document.createElement('button');button.type='button';button.textContent='Edit';button.addEventListener('click',()=>editManagedUnit(unit.id));
+          row.append(label,button);list.append(row);
+        }
+        status.textContent=managedUnits.length?'Choose a unit to edit.':'No units yet. Add your first unit.';
+      }catch(_){status.textContent='Could not load units. Check your connection and that the pricing SQL update is installed.';}
+    }
+    function editManagedUnit(id){
+      if(!adminReady||unitSaveBusy)return;
+      const unit=id?managedUnits.find(u=>u.id===id):null;if(id&&!unit)return;
+      creatingUnit=!unit;editingUnitId=unit?.id||crypto.randomUUID();
+      document.getElementById('unitEditorTitle').textContent=unit?'Edit unit':'Add unit';
+      for(const [field,value] of Object.entries({unitName:unit?.name||'',unitPrice:unit?.price||'',unitDeposit:unit?.deposit_amount??50,unitPhoto:unit?.thumbnail_url||'',unitOrder:unit?.order||''}))document.getElementById(field).value=value;
+      document.getElementById('unitDeposit').max=unit?.price||1000000;
+      document.getElementById('unitEditor').hidden=false;document.getElementById('unitName').focus();
+    }
+    document.getElementById('unitPrice').addEventListener('input',()=>{document.getElementById('unitDeposit').max=document.getElementById('unitPrice').value||1000000;});
+    document.getElementById('unitEditor').addEventListener('submit',async event=>{
+      event.preventDefault();if(unitSaveBusy)return;
+      const form=event.currentTarget;if(!form.reportValidity())return;
+      unitSaveBusy=true;document.getElementById('unitEditorFields').disabled=true;
+      const status=document.getElementById('unitManagerStatus');status.textContent='Saving…';
+      try{
+        if(!(await verifyAdmin()))throw Error('Please sign in again.');
+        const get=id=>document.getElementById(id).value.trim();
+        const {data,error}=await bookingClient.rpc('sg_save_unit',{p_id:editingUnitId,p_create:creatingUnit,p_name:get('unitName'),p_price:get('unitPrice'),p_deposit:get('unitDeposit'),p_thumbnail:get('unitPhoto'),p_order:get('unitOrder')});
+        if(error||data!==editingUnitId)throw Error(error?.message||'Save could not be verified.');
+        creatingUnit=false;document.getElementById('unitEditor').hidden=true;
+        await loadManagedUnits();
+        if(calendar)await populateUnitDropdown();
+        status.textContent='Unit saved. New checkouts will use these amounts. Refresh the customer page to see the update.';
+      }catch(error){status.textContent='Could not confirm the save: '+error.message+' Reload units before adding another copy.';}
+      finally{unitSaveBusy=false;document.getElementById('unitEditorFields').disabled=false;}
+    });
+
     async function logout() {
       await bookingClient.auth.signOut();
       window.location.href = 'login.html';
