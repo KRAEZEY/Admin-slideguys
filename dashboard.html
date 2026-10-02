@@ -66,7 +66,7 @@
     #unitEditor input{display:block;box-sizing:border-box;width:100%;padding:10px;margin:6px 0 16px} .managed-unit{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #ddd} .managed-unit span{overflow-wrap:anywhere}
     .unit-drag-handle{touch-action:none;cursor:grab;padding:12px;font-size:20px}.managed-unit.dragging{background:#e1efff;outline:2px solid #1674ca}.managed-unit>span{flex:1;min-width:0}.unit-row-actions{display:flex;gap:4px;flex-wrap:wrap}.unit-row-actions button{padding:8px} @media(max-width:500px){.managed-unit{flex-wrap:wrap}.unit-row-actions{margin-left:auto}}
     .modal-content{box-sizing:border-box;width:min(400px,calc(100vw - 32px));max-height:90vh;overflow-y:auto}
-    #bookingPaymentSummary{background:#f1f6fa;border:1px solid #d4e1ea;border-radius:8px;padding:12px;margin:8px 0 16px}#bookingPaymentSummary h4{margin:0 0 12px}.booking-payment-row{display:flex;justify-content:space-between;gap:12px;margin:8px 0}.booking-payment-note{font-size:12px;line-height:1.5;color:#465967}
+    #bookingPaymentSummary{box-sizing:border-box;width:100%;background:#f1f6fa;border:1px solid #cbd5df;border-radius:5px;padding:12px;margin:0 0 16px;font-size:16px;font-weight:700;line-height:1.4}#bookingPaymentSummary.payment-due{background:#fff4dd;border-color:#b66a00;color:#804400}#bookingPaymentSummary.payment-paid{background:#e7f6ec;border-color:#238449;color:#145c31}
   </style>
 </head>
 <body>
@@ -126,9 +126,9 @@
       <input type="email" id="editEmail" placeholder="Email" />
       <input type="tel" id="editPhone" placeholder="Phone" />
       <input type="text" id="editAddress" placeholder="Address" />
-      <input type="text" id="editCity" placeholder="City" /><section id="bookingPaymentSummary" role="status" aria-live="polite" hidden></section>
+      <input type="text" id="editCity" placeholder="City" />
       <input type="date" id="editDate" />
-      <select id="editUnit"></select>
+      <select id="editUnit"></select><section id="bookingPaymentSummary" role="status" aria-live="polite" hidden></section>
       <button onclick="saveBookingChanges()">💾 Save</button>
       <button onclick="createNewBooking()">➕ Create</button>
       <button onclick="deleteBooking()">🗑️ Delete</button>
@@ -608,23 +608,20 @@
     let bookingBalanceRequest=0;
     async function loadBookingBalance(bookingId){
       const request=++bookingBalanceRequest,panel=document.getElementById('bookingPaymentSummary');
-      panel.replaceChildren();panel.hidden=!bookingId;if(!bookingId)return;
-      panel.textContent='Loading payment details…';
+      panel.className='';panel.textContent='';panel.hidden=!bookingId;if(!bookingId)return;
+      panel.textContent='Loading payment status…';
+      panel.title='Rental balance based on checkout payment. Travel fees and later payments collected separately are not included.';
       try{
         const {data,error}=await bookingClient.rpc('sg_booking_payment_summary',{p_booking_id:bookingId});
         if(request!==bookingBalanceRequest||currentEditId!==bookingId)return;
         if(error)throw error;
-        panel.replaceChildren();
-        const heading=document.createElement('h4');heading.textContent='Payment for this unit';panel.append(heading);
-        if(!data){const note=document.createElement('p');note.textContent='Payment details unavailable. This booking has no linked checkout payment record. Check your payment records before collecting a balance.';panel.append(note);return;}
-        const money=cents=>'$'+(Number(cents)/100).toFixed(2);
-        for(const [label,amount] of [['Rental price',data.rental_cents],['Paid at checkout',data.paid_cents],[data.remaining_cents<0?'Credit balance':'Rental balance at delivery',Math.abs(data.remaining_cents)]]){
-          const row=document.createElement('div');row.className='booking-payment-row';
-          const title=document.createElement('span');title.textContent=label;const value=document.createElement('strong');value.textContent=money(amount);row.append(title,value);panel.append(row);
-        }
-        const note=document.createElement('p');note.className='booking-payment-note';note.textContent='For this unit only. Travel fees are additional. Based on the payment recorded at checkout; later payments collected separately are not included.';panel.append(note);
-        if(data.unit_changed){const changed=document.createElement('p');changed.textContent='This booking’s unit was changed. These amounts belong to the original unit ('+data.original_unit_name+'); confirm any price adjustment before collecting payment.';panel.append(changed);}
-      }catch(_){if(request===bookingBalanceRequest&&currentEditId===bookingId)panel.textContent='Payment details could not be loaded. Close and reopen this booking to retry.';}
+        if(!data){panel.textContent='Payment status unavailable';return;}
+        if(data.unit_changed){panel.textContent='Unit changed — verify balance';return;}
+        const remaining=Number(data.remaining_cents);
+        if(!Number.isFinite(remaining)){panel.textContent='Payment status unavailable';return;}
+        panel.className=remaining>0?'payment-due':'payment-paid';
+        panel.textContent=remaining>0?'Remaining balance: $'+(remaining/100).toFixed(2):remaining===0?'✓ Paid in full':'Credit balance: $'+(Math.abs(remaining)/100).toFixed(2);
+      }catch(_){if(request===bookingBalanceRequest&&currentEditId===bookingId)panel.textContent='Payment status unavailable';}
     }
 
     async function logout() {
