@@ -75,7 +75,7 @@
     </div>
   </header>
 
-  <main>
+  <main><section><h3>Payment follow-up</h3><button type="button" onclick="loadPaymentStatus()">Check payments and emails</button><div id="paymentFollowup" role="status"></div></section>
     <button onclick="toggleCalendar()">📅 View Bookings Calendar</button>
     <button onclick="loadWaivers()">📄 View Waivers</button>
 
@@ -396,6 +396,32 @@
       }
     }
 
+    async function loadPaymentStatus() {
+      if (!(await verifyAdmin())) return;
+      const target = document.getElementById('paymentFollowup');
+      target.textContent = 'Checking…';
+      try {
+        const {data,error} = await bookingClient.rpc('sg_live_admin_status');
+        if(error) throw error;
+        target.replaceChildren();
+        const summary = document.createElement('p');
+        summary.textContent = (data.accepting_checkouts ? 'New checkout is enabled. ' : 'New checkout is paused. ') + data.pending_emails + ' emails waiting.';
+        target.appendChild(summary);
+        for(const item of data.payments) {
+          const row = document.createElement('p');
+          row.textContent = 'Review payment: ' + item.checkout + ' · PayPal ' + item.order + ' · ' + item.status + '. Check this existing payment before taking any new payment.';
+          target.appendChild(row);
+        }
+        for(const item of data.emails) {
+          const row = document.createElement('p');
+          row.textContent = 'Review email delivery: ' + item.checkout + ' · template ' + item.template + ' · job ' + item.job + '. Check EmailJS history before resending.';
+          target.appendChild(row);
+        }
+        if(!data.payments.length && !data.emails.length) {
+          const row = document.createElement('p'); row.textContent='No payments or emails are flagged for review.'; target.appendChild(row);
+        }
+      } catch (_) { target.textContent='Could not load payment status. Check the connection and try again.'; }
+    }
     async function logout() {
       await bookingClient.auth.signOut();
       window.location.href = 'login.html';
