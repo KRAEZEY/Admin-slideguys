@@ -68,6 +68,7 @@
     .modal-content{box-sizing:border-box;width:min(400px,calc(100vw - 32px));max-height:90vh;overflow-y:auto}
     #bookingPaymentSummary{box-sizing:border-box;width:100%;background:#f1f6fa;border:1px solid #cbd5df;border-radius:5px;padding:12px;margin:0 0 16px;font-size:16px;font-weight:700;line-height:1.4}#bookingPaymentSummary.payment-due{background:#fff4dd;border-color:#b66a00;color:#804400}#bookingPaymentSummary.payment-paid{background:#e7f6ec;border-color:#238449;color:#145c31}
     .unit-list-photo{position:relative;flex:0 0 64px;width:64px;height:64px;overflow:hidden;border:1px solid #d4e1ea;border-radius:6px;background:#f3f6f8;display:flex;align-items:center;justify-content:center}.unit-list-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:white}.unit-list-photo span{font-size:11px;color:#607080}.managed-unit>span{overflow-wrap:anywhere}
+    #unitManager>summary{cursor:pointer;font-size:1.17em;font-weight:bold;padding:4px 0}#unitManager>summary:focus-visible{outline:2px solid #1674ca;outline-offset:5px;border-radius:3px}#unitManager[open]>summary{margin-bottom:16px}
   </style>
 </head>
 <body>
@@ -80,8 +81,8 @@
     </div>
   </header>
 
-  <main><section id="unitManager" style="margin:24px 0;padding:20px;border:1px solid #ccc;border-radius:10px">
-  <h3>Units &amp; pricing</h3><p>Edit a unit and choose Hide to remove it from the customer page without deleting its booking history. Choose Unhide to show it again.</p>
+  <main><details id="unitManager" style="margin:24px 0;padding:20px;border:1px solid #ccc;border-radius:10px">
+  <summary>Units &amp; Pricing</summary><p>Edit a unit and choose Hide to remove it from the customer page without deleting its booking history. Choose Unhide to show it again.</p>
   <p>Set a rental price and non-refundable deposit for each unit. Changes apply to new checkouts; payments already started keep their saved amounts.</p>
   <button type="button" onclick="loadManagedUnits()">Load units</button>
   <button type="button" onclick="editManagedUnit()">Add unit</button>
@@ -99,7 +100,7 @@
       <button type="submit">Save unit</button><button type="button" id="deleteUnitBtn" onclick="deleteManagedUnit()" hidden style="color:#a11919;margin-left:8px">Delete unit</button><button type="button" id="unitVisibilityBtn" onclick="setManagedUnitHidden(editingUnitId)" hidden style="margin-left:8px">Hide</button><button type="button" onclick="document.getElementById('unitEditor').hidden=true">Cancel</button>
     </fieldset>
   </form>
-</section>
+</details>
 <section><h3>Payment follow-up</h3><button type="button" onclick="loadPaymentStatus()">Check payments and emails</button><div id="paymentFollowup" role="status"></div></section>
     <button onclick="toggleCalendar()">📅 View Bookings Calendar</button>
     <button onclick="loadWaivers()">📄 View Waivers</button>
