@@ -66,6 +66,8 @@
   </style>
 </head>
 <body>
+  <p id="accessStatus" role="status">Checking admin access…</p>
+  <div id="adminApp" hidden>
   <header>
     <h2>📋 Admin Dashboard</h2>
     <div class="controls">
@@ -110,6 +112,7 @@
     </div>
   </div>
 
+  </div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
   <script>
@@ -123,12 +126,40 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtY2lkdnd1dWlyYnFnaGp4eG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMTU3MTYsImV4cCI6MjA2MjY5MTcxNn0.v45HvSFMpwdaw1zDbOZDcHtkAuY44X6H5FIKmH0JPEk'
     );
 
+    let adminReady = false;
+    async function verifyAdmin() {
+      try {
+        const { data, error } = await bookingClient.rpc('sg_is_admin');
+        if (error || data !== true) throw new Error('Access unavailable');
+        adminReady = true;
+        document.getElementById('accessStatus').hidden = true;
+        document.getElementById('adminApp').hidden = false;
+        return true;
+      } catch (_) {
+        adminReady = false;
+        document.getElementById('adminApp').hidden = true;
+        document.getElementById('accessStatus').hidden = false;
+        document.getElementById('accessStatus').textContent = 'Admin access could not be verified. Please sign in again.';
+        return false;
+      }
+    }
+    bookingClient.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') window.location.replace('login.html');
+    });
+    verifyAdmin().then(ok => {
+      if (!ok) {
+        const link = document.createElement('a');
+        link.href = 'login.html'; link.textContent = ' Go to login';
+        document.getElementById('accessStatus').appendChild(link);
+      }
+    });
     let calendar;
     let waiverCalendar;
     let unitMap = {};
     let currentEditId = null;
 
     function toggleCalendar() {
+      if (!adminReady) return;
       const section = document.getElementById('calendarSection');
       const calendarEl = document.getElementById('calendar');
 
@@ -147,8 +178,7 @@
             },
             dateClick: function(info) {
               const date = info.dateStr;
-              document.getElementById('editDate').value = date;
-              openModal({});
+              openModal({date, unit: document.getElementById('unitSelect').value === 'all' ? '' : document.getElementById('unitSelect').value});
             },
             eventClick: function(info) {
               const booking = info.event.extendedProps.booking;
@@ -196,7 +226,7 @@
       await loadAllBookings();
     }
 
-    async function loadAllBookings(filterUnitId = 'all') {
+    async function loadAllBookings(filterUnitId = document.getElementById('unitSelect').value || 'all') {
       let query = bookingClient.from('bookings').select(`
         id, date, unit, name, email, phone, address,city
       `);
@@ -227,6 +257,7 @@
     }
 
     async function loadWaivers() {
+      if (!(await verifyAdmin())) return;
       const section = document.getElementById('waiverCalendarSection');
       const calendarEl = document.getElementById('waiverCalendar');
 
@@ -309,6 +340,8 @@
     }
 
     async function saveBookingChanges() {
+      if (!(await verifyAdmin())) return;
+      if (!currentEditId) { alert('Select an existing booking to save.'); return; }
       const updated = {
         name: document.getElementById('editName').value,
         email: document.getElementById('editEmail').value,
@@ -321,7 +354,7 @@
 
       const { error } = await bookingClient.from('bookings').update(updated).eq('id', currentEditId);
       if (error) {
-        alert('Failed to save booking');
+        alert(error.code === '23505' ? 'That slide is already reserved for this date. Your original booking was kept.' : 'Failed to save booking: ' + error.message);
       } else {
         closeModal();
         loadAllBookings();
@@ -329,6 +362,7 @@
     }
 
     async function createNewBooking() {
+      if (!(await verifyAdmin())) return;
       const newBooking = {
         name: document.getElementById('editName').value,
         email: document.getElementById('editEmail').value,
@@ -341,7 +375,7 @@
 
       const { error } = await bookingClient.from('bookings').insert(newBooking);
       if (error) {
-        alert('Failed to create booking');
+        alert(error.code === '23505' ? 'That slide is already reserved for this date.' : 'Failed to create booking: ' + error.message);
       } else {
         closeModal();
         loadAllBookings();
@@ -349,6 +383,7 @@
     }
 
     async function deleteBooking() {
+      if (!(await verifyAdmin())) return;
       if (!currentEditId) return;
       if (!confirm("Are you sure you want to delete this booking?")) return;
 
