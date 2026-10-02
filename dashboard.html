@@ -68,7 +68,7 @@
     .modal-content{box-sizing:border-box;width:min(400px,calc(100vw - 32px));max-height:90vh;overflow-y:auto}
     #bookingPaymentSummary{box-sizing:border-box;width:100%;background:#f1f6fa;border:1px solid #cbd5df;border-radius:5px;padding:12px;margin:0 0 16px;font-size:16px;font-weight:700;line-height:1.4}#bookingPaymentSummary.payment-due{background:#fff4dd;border-color:#b66a00;color:#804400}#bookingPaymentSummary.payment-paid{background:#e7f6ec;border-color:#238449;color:#145c31}
     .unit-list-photo{position:relative;flex:0 0 64px;width:64px;height:64px;overflow:hidden;border:1px solid #d4e1ea;border-radius:6px;background:#f3f6f8;display:flex;align-items:center;justify-content:center}.unit-list-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:white}.unit-list-photo span{font-size:11px;color:#607080}.managed-unit>span{overflow-wrap:anywhere}
-    #unitManager>summary{cursor:pointer;font-size:1.17em;font-weight:bold;padding:4px 0}#unitManager>summary:focus-visible{outline:2px solid #1674ca;outline-offset:5px;border-radius:3px}#unitManager[open]>summary{margin-bottom:16px}
+    :is(#unitManager,#calendarSection)>summary{cursor:pointer;font-size:1.17em;font-weight:bold;padding:4px 0}:is(#unitManager,#calendarSection)>summary:focus-visible{outline:2px solid #1674ca;outline-offset:5px;border-radius:3px}:is(#unitManager,#calendarSection)[open]>summary{margin-bottom:16px}
   </style>
 </head>
 <body>
@@ -101,11 +101,7 @@
     </fieldset>
   </form>
 </details>
-<section><h3>Payment follow-up</h3><button type="button" onclick="loadPaymentStatus()">Check payments and emails</button><div id="paymentFollowup" role="status"></div></section>
-    <button onclick="toggleCalendar()">📅 View Bookings Calendar</button>
-    <button onclick="loadWaivers()">📄 View Waivers</button>
-
-    <div id="calendarSection" class="hidden">
+    <details id="calendarSection" ontoggle="toggleCalendar()" style="margin:24px 0;padding:20px;border:1px solid #ccc;border-radius:10px"><summary>View Bookings Calendar</summary>
       <div style="margin-top: 1rem;">
         <label for="unitSelect">Filter by Unit:</label>
         <select id="unitSelect">
@@ -113,7 +109,10 @@
         </select>
       </div>
       <div id="calendar"></div>
-    </div>
+    </details>
+<section><h3>Payment follow-up</h3><button type="button" onclick="loadPaymentStatus()">Check payments and emails</button><div id="paymentFollowup" role="status"></div></section>
+
+    <button onclick="loadWaivers()">📄 View Waivers</button>
 
     <div id="waiverCalendarSection" class="hidden">
       <h3>Signed Waivers Calendar</h3>
@@ -189,8 +188,8 @@
       const section = document.getElementById('calendarSection');
       const calendarEl = document.getElementById('calendar');
 
-      if (section.classList.contains('hidden')) {
-        section.classList.remove('hidden');
+      if (section.open) {
+
         calendarEl.style.display = 'block';
 
         if (!calendar) {
@@ -213,9 +212,11 @@
           });
           calendar.render();
           populateUnitDropdown();
+        } else {
+          calendar.updateSize();
         }
       } else {
-        section.classList.add('hidden');
+
         calendarEl.style.display = 'none';
       }
     }
