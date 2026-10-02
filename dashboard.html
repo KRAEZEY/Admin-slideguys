@@ -76,13 +76,13 @@
       <button onclick="logout()">Log Out</button>
     </div>
   </header>
+
   <main><section id="unitManager" style="margin:24px 0;padding:20px;border:1px solid #ccc;border-radius:10px">
   <h3>Units &amp; pricing</h3>
   <p>Set a rental price and non-refundable deposit for each unit. Changes apply to new checkouts; payments already started keep their saved amounts.</p>
   <button type="button" onclick="loadManagedUnits()">Load units</button>
   <button type="button" onclick="editManagedUnit()">Add unit</button>
   <p id="unitManagerStatus" role="status"></p>
-  <p>Drag the ☰ handle to rearrange units, then click Save order. You can also use the arrow buttons.</p><button type="button" id="saveUnitOrder" onclick="saveManagedOrder()" disabled>Save order</button> <button type="button" id="cancelUnitOrder" onclick="cancelManagedOrder()" disabled>Cancel order changes</button><div id="managedUnitList"></div>
   <p>Drag the ☰ handle to rearrange units, the order saves when you drop.</p><button type="button" id="saveUnitOrder" onclick="saveManagedOrder()" disabled hidden>Retry save</button> <button type="button" id="cancelUnitOrder" onclick="cancelManagedOrder()" disabled hidden>Discard local changes</button><div id="managedUnitList"></div>
   <form id="unitEditor" hidden style="max-width:520px;margin-top:20px">
     <h4 id="unitEditorTitle">Edit unit</h4>
@@ -100,6 +100,7 @@
 <section><h3>Payment follow-up</h3><button type="button" onclick="loadPaymentStatus()">Check payments and emails</button><div id="paymentFollowup" role="status"></div></section>
     <button onclick="toggleCalendar()">📅 View Bookings Calendar</button>
     <button onclick="loadWaivers()">📄 View Waivers</button>
+
     <div id="calendarSection" class="hidden">
       <div style="margin-top: 1rem;">
         <label for="unitSelect">Filter by Unit:</label>
@@ -109,11 +110,13 @@
       </div>
       <div id="calendar"></div>
     </div>
+
     <div id="waiverCalendarSection" class="hidden">
       <h3>Signed Waivers Calendar</h3>
       <div id="waiverCalendar"></div>
     </div>
   </main>
+
   <div class="modal" id="editModal">
     <div class="modal-content">
       <h3>Edit Booking</h3>
@@ -130,6 +133,7 @@
       <button onclick="closeModal()">Cancel</button>
     </div>
   </div>
+
   </div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
@@ -138,10 +142,12 @@
       'https://vaobmohukgcqfvnclqyh.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTcyNzksImV4cCI6MjA2MDMzMzI3OX0.6pl5QBTVUr8wu3bn4kXhI2kPE5qf97PrIbUw7-0382M'
     );
+
     const waiverClient = supabase.createClient(
       'https://hmcidvwuuirbqghjxxow.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtY2lkdnd1dWlyYnFnaGp4eG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMTU3MTYsImV4cCI6MjA2MjY5MTcxNn0.v45HvSFMpwdaw1zDbOZDcHtkAuY44X6H5FIKmH0JPEk'
     );
+
     let adminReady = false;
     async function verifyAdmin() {
       try {
@@ -173,13 +179,16 @@
     let waiverCalendar;
     let unitMap = {};
     let currentEditId = null;
+
     function toggleCalendar() {
       if (!adminReady) return;
       const section = document.getElementById('calendarSection');
       const calendarEl = document.getElementById('calendar');
+
       if (section.classList.contains('hidden')) {
         section.classList.remove('hidden');
         calendarEl.style.display = 'block';
+
         if (!calendar) {
           calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
@@ -206,47 +215,59 @@
         calendarEl.style.display = 'none';
       }
     }
+
     async function populateUnitDropdown() {
       const { data, error } = await bookingClient.from('units').select();
       if (error) {
         alert('Error fetching units');
         return;
       }
+
       const select = document.getElementById('unitSelect');
       const editUnit = document.getElementById('editUnit');
       const priorFilter=select.value,priorEdit=editUnit.value;
       select.innerHTML = '<option value="all">All Units</option>';
       editUnit.innerHTML = '';
+
       data.forEach(unit => {
         unitMap[unit.id] = unit.name;
+
         const option = document.createElement('option');
         option.value = unit.id;
         option.textContent = unit.name;
         select.appendChild(option);
+
         const editOption = option.cloneNode(true);
         editUnit.appendChild(editOption);
       });
+
       select.value=data.some(u=>u.id===priorFilter)?priorFilter:'all';
       if(data.some(u=>u.id===priorEdit))editUnit.value=priorEdit;
       select.onchange = async () => {
         const selectedUnit = select.value;
         await loadAllBookings(selectedUnit);
       };
+
       await loadAllBookings();
     }
+
     async function loadAllBookings(filterUnitId = document.getElementById('unitSelect').value || 'all') {
       let query = bookingClient.from('bookings').select(`
         id, date, unit, name, email, phone, address,city
       `);
+
       if (filterUnitId !== 'all') {
         query = query.eq('unit', filterUnitId);
       }
+
       const { data, error } = await query;
       if (error) {
         alert('Error loading bookings');
         return;
       }
+
       calendar.removeAllEvents();
+
       data.forEach(booking => {
         const unitName = unitMap[booking.unit] || 'Unknown Unit';
         calendar.addEvent({
@@ -259,12 +280,15 @@
         });
       });
     }
+
     async function loadWaivers() {
       if (!(await verifyAdmin())) return;
       const section = document.getElementById('waiverCalendarSection');
       const calendarEl = document.getElementById('waiverCalendar');
+
       if (section.classList.contains('hidden')) {
         section.classList.remove('hidden');
+
         if (!waiverCalendar) {
           waiverCalendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
@@ -280,15 +304,19 @@
           });
           waiverCalendar.render();
         }
+
         const { data, error } = await waiverClient
           .from('waivers')
           .select()
           .order('signed_date', { ascending: true });
+
         if (error) {
           alert('Failed to load waivers: ' + error.message);
           return;
         }
+
         const grouped = {};
+
         data.forEach(waiver => {
           const key = `${waiver.parent_first_name} ${waiver.parent_last_name}|${waiver.signed_date}`;
           if (!grouped[key]) {
@@ -300,7 +328,9 @@
           }
           grouped[key].children.push(`${waiver.child_first_name} ${waiver.child_last_name}`);
         });
+
         waiverCalendar.removeAllEvents();
+
         Object.values(grouped).forEach(entry => {
           waiverCalendar.addEvent({
             title: entry.parent,
@@ -311,10 +341,12 @@
             }
           });
         });
+
       } else {
         section.classList.add('hidden');
       }
     }
+
     function openModal(booking) {
       currentEditId = booking.id || null;
       document.getElementById('editName').value = booking.name || '';
@@ -326,10 +358,12 @@
       document.getElementById('editUnit').value = booking.unit || '';
       document.getElementById('editModal').style.display = 'flex';
     }
+
     function closeModal() {
       document.getElementById('editModal').style.display = 'none';
       currentEditId = null;
     }
+
     async function saveBookingChanges() {
       if (!(await verifyAdmin())) return;
       if (!currentEditId) { alert('Select an existing booking to save.'); return; }
@@ -342,6 +376,7 @@
         date: document.getElementById('editDate').value,
         unit: document.getElementById('editUnit').value
       };
+
       const { error } = await bookingClient.from('bookings').update(updated).eq('id', currentEditId);
       if (error) {
         alert(error.code === '23505' ? 'That slide is already reserved for this date. Your original booking was kept.' : 'Failed to save booking: ' + error.message);
@@ -350,6 +385,7 @@
         loadAllBookings();
       }
     }
+
     async function createNewBooking() {
       if (!(await verifyAdmin())) return;
       const newBooking = {
@@ -361,6 +397,7 @@
         date: document.getElementById('editDate').value,
         unit: document.getElementById('editUnit').value
       };
+
       const { error } = await bookingClient.from('bookings').insert(newBooking);
       if (error) {
         alert(error.code === '23505' ? 'That slide is already reserved for this date.' : 'Failed to create booking: ' + error.message);
@@ -369,10 +406,12 @@
         loadAllBookings();
       }
     }
+
     async function deleteBooking() {
       if (!(await verifyAdmin())) return;
       if (!currentEditId) return;
       if (!confirm("Are you sure you want to delete this booking?")) return;
+
       const { error } = await bookingClient.from('bookings').delete().eq('id', currentEditId);
       if (error) {
         alert('Failed to delete booking');
@@ -381,6 +420,7 @@
         loadAllBookings();
       }
     }
+
     async function loadPaymentStatus() {
       if (!(await verifyAdmin())) return;
       const target = document.getElementById('paymentFollowup');
@@ -447,6 +487,7 @@
       }catch(error){status.textContent='Could not confirm the save: '+error.message+' Reload units before adding another copy.';}
       finally{unitSaveBusy=false;document.getElementById('unitEditorFields').disabled=false;}
     });
+
     let savedUnitOrder=[],orderDirty=false,orderBusy=false,unitDrag=null;
     function updateOrderControls(){
       document.getElementById('saveUnitOrder').disabled=!orderDirty||orderBusy||unitSaveBusy;
@@ -461,7 +502,6 @@
     }
     function markUnitOrder(){
       orderDirty=managedUnits.some((u,i)=>u.id!==savedUnitOrder[i]?.id);
-      document.getElementById('unitManagerStatus').textContent=orderDirty?'Order changed. Click Save order to update the customer page.':'Order unchanged.';
       document.getElementById('unitManagerStatus').textContent=orderDirty?'Release to save the new order.':'Order unchanged.';
       updateOrderControls();
     }
@@ -492,16 +532,11 @@
           list.insertBefore(row,next);handle.setPointerCapture(event.pointerId);
           const ids=Array.from(list.children,n=>n.dataset.unitId);managedUnits=ids.map(id=>managedUnits.find(u=>u.id===id));markUnitOrder();
         });
-        handle.addEventListener('pointerup',()=>{if(!unitDrag)return;unitDrag=null;renderManagedUnits();});
         handle.addEventListener('pointerup',()=>{if(!unitDrag)return;unitDrag=null;renderManagedUnits();saveManagedOrder();});
         handle.addEventListener('pointercancel',()=>{if(!unitDrag)return;managedUnits=unitDrag.original;unitDrag=null;markUnitOrder();renderManagedUnits();});
         handle.addEventListener('keydown',event=>{if(event.key==='ArrowUp'||event.key==='ArrowDown'){event.preventDefault();moveManagedUnit(unit.id,event.key==='ArrowUp'?-1:1);}});
         const label=document.createElement('span');label.textContent=unit.name+' · Rental '+unitMoney(unit.price)+' · Deposit '+unitMoney(unit.deposit_amount);
         const controls=document.createElement('div');controls.className='unit-row-actions';
-        for(const [caption,direction] of [['↑',-1],['↓',1]]){
-          const button=document.createElement('button');button.type='button';button.textContent=caption;button.setAttribute('aria-label','Move '+unit.name+(direction<0?' up':' down'));
-          button.disabled=orderBusy||(direction<0?index===0:index===managedUnits.length-1);button.addEventListener('click',()=>moveManagedUnit(unit.id,direction));controls.append(button);
-        }
         const edit=document.createElement('button');edit.type='button';edit.textContent='Edit';edit.disabled=orderDirty||orderBusy;edit.addEventListener('click',()=>editManagedUnit(unit.id));controls.append(edit);
         handle.disabled=orderBusy;row.append(handle,label,controls);list.append(row);
       });updateOrderControls();
@@ -520,10 +555,10 @@
         if(calendar)await populateUnitDropdown();
         status.textContent='Order saved. Refresh the customer page to see the new order.';
       }catch(error){
-        status.textContent=error.message.includes('ORDER_CHANGED')?'The unit list was changed elsewhere. Cancel these changes and reload units before reordering.':'Could not confirm the save. Cancel and reload units to check the saved order before trying again.';
         status.textContent=error.message.includes('ORDER_CHANGED')?'The unit list was changed elsewhere. Discard local changes and reload units before reordering.':'Could not confirm the save. Retry, or discard local changes and reload units to check the saved order.';
       }finally{orderBusy=false;renderManagedUnits();}
     }
+
     async function logout() {
       await bookingClient.auth.signOut();
       window.location.href = 'login.html';
