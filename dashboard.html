@@ -78,7 +78,7 @@
   </header>
 
   <main><section id="unitManager" style="margin:24px 0;padding:20px;border:1px solid #ccc;border-radius:10px">
-  <h3>Units &amp; pricing</h3>
+  <h3>Units &amp; pricing</h3><p>Hide a unit from the customer page without deleting it or its booking history. Use Show to customers when it is ready to rent again.</p>
   <p>Set a rental price and non-refundable deposit for each unit. Changes apply to new checkouts; payments already started keep their saved amounts.</p>
   <button type="button" onclick="loadManagedUnits()">Load units</button>
   <button type="button" onclick="editManagedUnit()">Add unit</button>
@@ -93,7 +93,7 @@
       <p>The deposit must be greater than $0 and no more than the rental price. For a $1 test, set both amounts to $1.</p>
       <label for="unitPhoto">Photo URL</label><input id="unitPhoto" type="url" maxlength="2000" placeholder="https://…">
       <label for="unitOrder">Display order</label><input id="unitOrder" maxlength="100">
-      <button type="submit">Save unit</button><button type="button" onclick="document.getElementById('unitEditor').hidden=true">Cancel</button>
+      <button type="submit">Save unit</button><button type="button" id="deleteUnitBtn" onclick="deleteManagedUnit()" hidden style="color:#a11919;margin-left:8px">Delete unit</button><button type="button" onclick="document.getElementById('unitEditor').hidden=true">Cancel</button>
     </fieldset>
   </form>
 </section>
@@ -454,7 +454,7 @@
       if(!(await verifyAdmin()))return;
       const status=document.getElementById('unitManagerStatus');status.textContent='Loading units…';
       try{
-        const {data,error}=await bookingClient.from('units').select('id,name,price,deposit_amount,thumbnail_url,order').order('order',{ascending:true});
+        const {data,error}=await bookingClient.from('units').select('id,name,price,deposit_amount,thumbnail_url,order,is_hidden').order('order',{ascending:true});
         if(error)throw error;managedUnits=data||[];
         savedUnitOrder=managedUnits.map(u=>({...u}));orderDirty=false;renderManagedUnits();
         status.textContent=managedUnits.length?'Choose a unit to edit.':'No units yet. Add your first unit.';
@@ -464,6 +464,7 @@
       if(!adminReady||unitSaveBusy||orderBusy||orderDirty)return;
       const unit=id?managedUnits.find(u=>u.id===id):null;if(id&&!unit)return;
       creatingUnit=!unit;editingUnitId=unit?.id||crypto.randomUUID();
+      document.getElementById('deleteUnitBtn').hidden=!unit;
       document.getElementById('unitEditorTitle').textContent=unit?'Edit unit':'Add unit';
       for(const [field,value] of Object.entries({unitName:unit?.name||'',unitPrice:unit?.price||'',unitDeposit:unit?.deposit_amount??50,unitPhoto:unit?.thumbnail_url||'',unitOrder:unit?.order||''}))document.getElementById(field).value=value;
       document.getElementById('unitDeposit').max=unit?.price||1000000;
@@ -485,7 +486,7 @@
         if(calendar)await populateUnitDropdown();
         status.textContent='Unit saved. New checkouts will use these amounts. Refresh the customer page to see the update.';
       }catch(error){status.textContent='Could not confirm the save: '+error.message+' Reload units before adding another copy.';}
-      finally{unitSaveBusy=false;document.getElementById('unitEditorFields').disabled=false;}
+      finally{unitSaveBusy=false;document.getElementById('unitEditorFields').disabled=false;renderManagedUnits();}
     });
 
     let savedUnitOrder=[],orderDirty=false,orderBusy=false,unitDrag=null;
@@ -537,6 +538,11 @@
         handle.addEventListener('keydown',event=>{if(event.key==='ArrowUp'||event.key==='ArrowDown'){event.preventDefault();moveManagedUnit(unit.id,event.key==='ArrowUp'?-1:1);}});
         const label=document.createElement('span');label.textContent=unit.name+' · Rental '+unitMoney(unit.price)+' · Deposit '+unitMoney(unit.deposit_amount);
         const controls=document.createElement('div');controls.className='unit-row-actions';
+        const visibility=document.createElement('button');visibility.type='button';visibility.className='unit-visibility-button';
+        visibility.textContent=unit.is_hidden?'Show to customers':'Hide from customers';
+        visibility.setAttribute('aria-label',visibility.textContent+': '+unit.name);
+        visibility.disabled=unitSaveBusy||orderBusy||orderDirty;visibility.addEventListener('click',()=>setManagedUnitHidden(unit.id));controls.append(visibility);
+        if(unit.is_hidden){const badge=document.createElement('small');badge.textContent='Hidden from customers';badge.style.display='block';label.append(badge);}
         const edit=document.createElement('button');edit.type='button';edit.textContent='Edit';edit.disabled=orderDirty||orderBusy;edit.addEventListener('click',()=>editManagedUnit(unit.id));controls.append(edit);
         handle.disabled=orderBusy;row.append(handle,label,controls);list.append(row);
       });updateOrderControls();
@@ -557,6 +563,42 @@
       }catch(error){
         status.textContent=error.message.includes('ORDER_CHANGED')?'The unit list was changed elsewhere. Discard local changes and reload units before reordering.':'Could not confirm the save. Retry, or discard local changes and reload units to check the saved order.';
       }finally{orderBusy=false;renderManagedUnits();}
+    }
+
+    async function deleteManagedUnit(){
+      if(unitSaveBusy||orderBusy||orderDirty||creatingUnit||!editingUnitId)return;
+      const unit=managedUnits.find(u=>u.id===editingUnitId);if(!unit)return;
+      if(!window.confirm('Permanently delete "'+unit.name+'"?\n\nThis removes the unit from the customer catalog and cannot be undone. Units with bookings or checkout holds cannot be deleted.'))return;
+      unitSaveBusy=true;document.getElementById('unitEditorFields').disabled=true;
+      const status=document.getElementById('unitManagerStatus');status.textContent='Deleting unit…';
+      try{
+        if(!(await verifyAdmin()))throw Error('ADMIN_REQUIRED');
+        const {data,error}=await bookingClient.rpc('sg_delete_unit',{p_id:unit.id,p_expected_name:unit.name});
+        if(error)throw Error(error.message);
+        if(typeof data!=='boolean')throw Error('UNVERIFIED_DELETE');
+        document.getElementById('unitEditor').hidden=true;editingUnitId=null;creatingUnit=false;
+        await loadManagedUnits();if(calendar)await populateUnitDropdown();
+        status.textContent=data?'Unit deleted. Refresh the customer page to see the change.':'This unit was already removed. The list has been refreshed.';
+      }catch(error){
+        const messages={UNIT_HAS_BOOKINGS:'This unit has bookings and cannot be deleted. Its reservations have been kept.',UNIT_HAS_CHECKOUT_HOLD:'This unit has a checkout hold and cannot be deleted yet. Resolve that checkout first.',UNIT_CHANGED:'This unit changed since it was loaded. Reload units and review it before deleting.',ADMIN_REQUIRED:'Please sign in with an authorized admin account.'};
+        status.textContent=messages[error.message]||'Could not confirm deletion. Reload units to check its current status before trying again.';
+      }finally{unitSaveBusy=false;document.getElementById('unitEditorFields').disabled=false;renderManagedUnits();}
+    }
+
+    async function setManagedUnitHidden(id){
+      if(unitSaveBusy||orderBusy||orderDirty||unitDrag)return;
+      const unit=managedUnits.find(u=>u.id===id);if(!unit)return;
+      const hidden=unit.is_hidden!==true;
+      unitSaveBusy=true;renderManagedUnits();
+      const status=document.getElementById('unitManagerStatus');status.textContent='Saving customer visibility…';
+      try{
+        if(!(await verifyAdmin()))throw Error('ADMIN_REQUIRED');
+        const {data,error}=await bookingClient.rpc('sg_set_unit_hidden',{p_id:id,p_hidden:hidden});
+        if(error||data!==hidden)throw Error(error?.message||'Save could not be verified.');
+        unit.is_hidden=hidden;savedUnitOrder=savedUnitOrder.map(u=>u.id===id?{...u,is_hidden:hidden}:u);
+        status.textContent=unit.name+(hidden?' is hidden from the customer page. Existing bookings and payments are unchanged.':' is shown on the customer page again.');
+      }catch(_){status.textContent='Could not confirm this change. Reload units to check the saved visibility before trying again.';}
+      finally{unitSaveBusy=false;renderManagedUnits();}
     }
 
     async function logout() {
