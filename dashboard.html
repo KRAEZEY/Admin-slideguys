@@ -643,7 +643,17 @@
 
     async function phoneReminderRequest(action,extra={}){
       const {data,error}=await bookingClient.functions.invoke('sg-phone-reminders',{body:{action,...extra}});
-      if(error){let message='Could not connect. Check your login and notification setup.';try{message=(await error.context.json()).error||message;}catch{}throw Error(message);}
+      if(error){
+        let detail='',code='',status=error.context?.status;
+        try{const response=await error.context.json();detail=response.error||response.message||'';code=response.code||'';}catch{}
+        if(typeof detail!=='string')detail=JSON.stringify(detail);
+        let message=detail||error.message||'Network request failed';
+        if(status===401)message+=' — Log out, sign back in, then retry.';
+        if(status===404)message+=' — Check that sg-phone-reminders is deployed in the booking Supabase project.';
+        if(status===503)message+=' — Open sg-phone-reminders → Logs in Supabase and check its startup error.';
+        if(!status)message+=' — Check your internet connection and the sg-phone-reminders deployment.';
+        throw Error('Notification setup ('+action+(status?', HTTP '+status:'')+(code?', '+code:'')+'): '+message);
+      }
       if(data?.error)throw Error(data.error);return data;
     }
     async function phoneReminders(action){
