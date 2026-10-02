@@ -64,6 +64,7 @@
       margin-right: 0.5rem;
     }
     #unitEditor input{display:block;box-sizing:border-box;width:100%;padding:10px;margin:6px 0 16px} .managed-unit{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #ddd} .managed-unit span{overflow-wrap:anywhere}
+    .unit-drag-handle{touch-action:none;cursor:grab;padding:12px;font-size:20px}.managed-unit.dragging{background:#e1efff;outline:2px solid #1674ca}.managed-unit>span{flex:1;min-width:0}.unit-row-actions{display:flex;gap:4px;flex-wrap:wrap}.unit-row-actions button{padding:8px} @media(max-width:500px){.managed-unit{flex-wrap:wrap}.unit-row-actions{margin-left:auto}}
   </style>
 </head>
 <body>
@@ -82,7 +83,7 @@
   <button type="button" onclick="loadManagedUnits()">Load units</button>
   <button type="button" onclick="editManagedUnit()">Add unit</button>
   <p id="unitManagerStatus" role="status"></p>
-  <div id="managedUnitList"></div>
+  <p>Drag the ☰ handle to rearrange units, then click Save order. You can also use the arrow buttons.</p><button type="button" id="saveUnitOrder" onclick="saveManagedOrder()" disabled>Save order</button> <button type="button" id="cancelUnitOrder" onclick="cancelManagedOrder()" disabled>Cancel order changes</button><div id="managedUnitList"></div>
   <form id="unitEditor" hidden style="max-width:520px;margin-top:20px">
     <h4 id="unitEditorTitle">Edit unit</h4>
     <fieldset id="unitEditorFields" style="border:0;padding:0">
@@ -449,23 +450,18 @@
     let managedUnits=[],editingUnitId=null,creatingUnit=false,unitSaveBusy=false;
     const unitMoney=n=>'$'+Number(n).toFixed(2);
     async function loadManagedUnits(){
+      if(orderBusy||orderDirty){document.getElementById('unitManagerStatus').textContent='Save or cancel your order changes first.';return;}
       if(!(await verifyAdmin()))return;
       const status=document.getElementById('unitManagerStatus');status.textContent='Loading units…';
       try{
         const {data,error}=await bookingClient.from('units').select('id,name,price,deposit_amount,thumbnail_url,order').order('order',{ascending:true});
         if(error)throw error;managedUnits=data||[];
-        const list=document.getElementById('managedUnitList');list.replaceChildren();
-        for(const unit of managedUnits){
-          const row=document.createElement('div');row.className='managed-unit';
-          const label=document.createElement('span');label.textContent=unit.name+' · Rental '+unitMoney(unit.price)+' · Deposit '+unitMoney(unit.deposit_amount);
-          const button=document.createElement('button');button.type='button';button.textContent='Edit';button.addEventListener('click',()=>editManagedUnit(unit.id));
-          row.append(label,button);list.append(row);
-        }
+        savedUnitOrder=managedUnits.map(u=>({...u}));orderDirty=false;renderManagedUnits();
         status.textContent=managedUnits.length?'Choose a unit to edit.':'No units yet. Add your first unit.';
       }catch(_){status.textContent='Could not load units. Check your connection and that the pricing SQL update is installed.';}
     }
     function editManagedUnit(id){
-      if(!adminReady||unitSaveBusy)return;
+      if(!adminReady||unitSaveBusy||orderBusy||orderDirty)return;
       const unit=id?managedUnits.find(u=>u.id===id):null;if(id&&!unit)return;
       creatingUnit=!unit;editingUnitId=unit?.id||crypto.randomUUID();
       document.getElementById('unitEditorTitle').textContent=unit?'Edit unit':'Add unit';
@@ -491,6 +487,78 @@
       }catch(error){status.textContent='Could not confirm the save: '+error.message+' Reload units before adding another copy.';}
       finally{unitSaveBusy=false;document.getElementById('unitEditorFields').disabled=false;}
     });
+
+    let savedUnitOrder=[],orderDirty=false,orderBusy=false,unitDrag=null;
+    function updateOrderControls(){
+      document.getElementById('saveUnitOrder').disabled=!orderDirty||orderBusy||unitSaveBusy;
+      document.getElementById('cancelUnitOrder').disabled=!orderDirty||orderBusy;
+    }
+    function canReorder(){
+      if(orderBusy||unitSaveBusy||!adminReady)return false;
+      if(!document.getElementById('unitEditor').hidden){document.getElementById('unitManagerStatus').textContent='Save or cancel the unit edit before changing the order.';return false;}
+      return true;
+    }
+    function markUnitOrder(){
+      orderDirty=managedUnits.some((u,i)=>u.id!==savedUnitOrder[i]?.id);
+      document.getElementById('unitManagerStatus').textContent=orderDirty?'Order changed. Click Save order to update the customer page.':'Order unchanged.';
+      updateOrderControls();
+    }
+    function moveManagedUnit(id,direction){
+      if(!canReorder())return;
+      const index=managedUnits.findIndex(u=>u.id===id),next=index+direction;
+      if(index<0||next<0||next>=managedUnits.length)return;
+      const [unit]=managedUnits.splice(index,1);managedUnits.splice(next,0,unit);
+      markUnitOrder();renderManagedUnits();
+      document.querySelector('[data-unit-id="'+id+'"] .unit-drag-handle')?.focus();
+    }
+    function renderManagedUnits(){
+      const list=document.getElementById('managedUnitList');list.replaceChildren();
+      managedUnits.forEach((unit,index)=>{
+        const row=document.createElement('div');row.className='managed-unit';row.dataset.unitId=unit.id;
+        const handle=document.createElement('button');handle.type='button';handle.className='unit-drag-handle';handle.textContent='☰';handle.setAttribute('aria-label','Drag '+unit.name+' to reorder');
+        handle.addEventListener('pointerdown',event=>{
+          if(event.button!==0||!canReorder())return;
+          event.preventDefault();unitDrag={id:unit.id,pointer:event.pointerId,original:managedUnits.slice()};handle.setPointerCapture(event.pointerId);row.classList.add('dragging');
+        });
+        handle.addEventListener('pointermove',event=>{
+          if(!unitDrag||unitDrag.pointer!==event.pointerId)return;
+          const target=document.elementFromPoint(event.clientX,event.clientY)?.closest('.managed-unit');
+          if(!target||target===row||target.parentElement!==list)return;
+          const rect=target.getBoundingClientRect(),next=event.clientY<rect.top+rect.height/2?target:target.nextSibling;
+          if(next===row||row.nextSibling===next)return;
+          list.insertBefore(row,next);handle.setPointerCapture(event.pointerId);
+          const ids=Array.from(list.children,n=>n.dataset.unitId);managedUnits=ids.map(id=>managedUnits.find(u=>u.id===id));markUnitOrder();
+        });
+        handle.addEventListener('pointerup',()=>{if(!unitDrag)return;unitDrag=null;renderManagedUnits();});
+        handle.addEventListener('pointercancel',()=>{if(!unitDrag)return;managedUnits=unitDrag.original;unitDrag=null;markUnitOrder();renderManagedUnits();});
+        handle.addEventListener('keydown',event=>{if(event.key==='ArrowUp'||event.key==='ArrowDown'){event.preventDefault();moveManagedUnit(unit.id,event.key==='ArrowUp'?-1:1);}});
+        const label=document.createElement('span');label.textContent=unit.name+' · Rental '+unitMoney(unit.price)+' · Deposit '+unitMoney(unit.deposit_amount);
+        const controls=document.createElement('div');controls.className='unit-row-actions';
+        for(const [caption,direction] of [['↑',-1],['↓',1]]){
+          const button=document.createElement('button');button.type='button';button.textContent=caption;button.setAttribute('aria-label','Move '+unit.name+(direction<0?' up':' down'));
+          button.disabled=orderBusy||(direction<0?index===0:index===managedUnits.length-1);button.addEventListener('click',()=>moveManagedUnit(unit.id,direction));controls.append(button);
+        }
+        const edit=document.createElement('button');edit.type='button';edit.textContent='Edit';edit.disabled=orderDirty||orderBusy;edit.addEventListener('click',()=>editManagedUnit(unit.id));controls.append(edit);
+        handle.disabled=orderBusy;row.append(handle,label,controls);list.append(row);
+      });updateOrderControls();
+    }
+    function cancelManagedOrder(){
+      if(orderBusy)return;managedUnits=savedUnitOrder.map(u=>({...u}));orderDirty=false;renderManagedUnits();document.getElementById('unitManagerStatus').textContent='Order changes cancelled.';
+    }
+    async function saveManagedOrder(){
+      if(!orderDirty||!canReorder())return;
+      orderBusy=true;renderManagedUnits();const status=document.getElementById('unitManagerStatus');status.textContent='Saving order…';
+      try{
+        if(!(await verifyAdmin()))throw Error('Please sign in again.');
+        const {data,error}=await bookingClient.rpc('sg_reorder_units',{p_ids:managedUnits.map(u=>u.id),p_expected:savedUnitOrder.map(u=>({id:u.id,order:u.order??null}))});
+        if(error||data!==true)throw Error(error?.message||'Save could not be verified.');
+        managedUnits=managedUnits.map((u,i)=>({...u,order:String(i+1).padStart(6,'0')}));savedUnitOrder=managedUnits.map(u=>({...u}));orderDirty=false;
+        if(calendar)await populateUnitDropdown();
+        status.textContent='Order saved. Refresh the customer page to see the new order.';
+      }catch(error){
+        status.textContent=error.message.includes('ORDER_CHANGED')?'The unit list was changed elsewhere. Cancel these changes and reload units before reordering.':'Could not confirm the save. Cancel and reload units to check the saved order before trying again.';
+      }finally{orderBusy=false;renderManagedUnits();}
+    }
 
     async function logout() {
       await bookingClient.auth.signOut();
