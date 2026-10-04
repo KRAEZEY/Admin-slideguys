@@ -4,13 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Admin Dashboard</title>
+
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet" />
+
   <style>
     body {
       font-family: Arial, sans-serif;
       margin: 0;
       background: #f3f3f3;
     }
+
     header {
       display: flex;
       justify-content: space-between;
@@ -19,6 +22,7 @@
       background: white;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
+
     main {
       max-width: 1000px;
       margin: 2rem auto;
@@ -26,32 +30,46 @@
       padding: 1rem;
       border-radius: 8px;
     }
+
     .controls {
       display: flex;
       gap: 1rem;
     }
-    #calendar, #waiverCalendar {
+
+    #calendar,
+    #waiverCalendar {
       margin-top: 2rem;
     }
+
     .hidden {
       display: none;
     }
+
     .modal {
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
       background: rgba(0,0,0,0.5);
       display: none;
       justify-content: center;
       align-items: center;
       z-index: 9999;
     }
+
     .modal-content {
       background: white;
       padding: 1rem;
       border-radius: 8px;
       max-width: 400px;
       width: 100%;
+      box-sizing: border-box;
+      width: min(400px,calc(100vw - 32px));
+      max-height: 90vh;
+      overflow-y: auto;
     }
+
     .modal-content input,
     .modal-content select {
       width: 100%;
@@ -59,93 +77,723 @@
       padding: 0.5rem;
       box-sizing: border-box;
     }
+
     .modal-content button {
       margin-top: 0.5rem;
       margin-right: 0.5rem;
     }
-    #unitEditor input{display:block;box-sizing:border-box;width:100%;padding:10px;margin:6px 0 16px} .managed-unit{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #ddd} .managed-unit span{overflow-wrap:anywhere}
-    .unit-drag-handle{touch-action:none;cursor:grab;padding:12px;font-size:20px}.managed-unit.dragging{background:#e1efff;outline:2px solid #1674ca}.managed-unit>span{flex:1;min-width:0}.unit-row-actions{display:flex;gap:4px;flex-wrap:wrap}.unit-row-actions button{padding:8px} @media(max-width:500px){.managed-unit{flex-wrap:wrap}.unit-row-actions{margin-left:auto}}
-    .modal-content{box-sizing:border-box;width:min(400px,calc(100vw - 32px));max-height:90vh;overflow-y:auto}
-    #bookingPaymentSummary{box-sizing:border-box;width:100%;background:#f1f6fa;border:1px solid #cbd5df;border-radius:5px;padding:12px;margin:0 0 16px;font-size:16px;font-weight:700;line-height:1.4}#bookingPaymentSummary.payment-due{background:#fff4dd;border-color:#b66a00;color:#804400}#bookingPaymentSummary.payment-paid{background:#e7f6ec;border-color:#238449;color:#145c31}
-    .unit-list-photo{position:relative;flex:0 0 64px;width:64px;height:64px;overflow:hidden;border:1px solid #d4e1ea;border-radius:6px;background:#f3f6f8;display:flex;align-items:center;justify-content:center}.unit-list-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:white}.unit-list-photo span{font-size:11px;color:#607080}.managed-unit>span{overflow-wrap:anywhere}
-    :is(#unitManager,#calendarSection)>summary{cursor:pointer;font-size:1.17em;font-weight:bold;padding:4px 0}:is(#unitManager,#calendarSection)>summary:focus-visible{outline:2px solid #1674ca;outline-offset:5px;border-radius:3px}:is(#unitManager,#calendarSection)[open]>summary{margin-bottom:16px}
+
+    #unitEditor input {
+      display: block;
+      box-sizing: border-box;
+      width: 100%;
+      padding: 10px;
+      margin: 6px 0 16px;
+    }
+
+    .managed-unit {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .managed-unit span {
+      overflow-wrap: anywhere;
+    }
+
+    .unit-drag-handle {
+      touch-action: none;
+      cursor: grab;
+      padding: 12px;
+      font-size: 20px;
+    }
+
+    .managed-unit.dragging {
+      background: #e1efff;
+      outline: 2px solid #1674ca;
+    }
+
+    .managed-unit > span {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .unit-row-actions {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .unit-row-actions button {
+      padding: 8px;
+    }
+
+    @media(max-width:500px) {
+      .managed-unit {
+        flex-wrap: wrap;
+      }
+
+      .unit-row-actions {
+        margin-left: auto;
+      }
+    }
+
+    #bookingPaymentSummary {
+      box-sizing: border-box;
+      width: 100%;
+      background: #f1f6fa;
+      border: 1px solid #cbd5df;
+      border-radius: 5px;
+      padding: 12px;
+      margin: 0 0 16px;
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+
+    #bookingPaymentSummary.payment-due {
+      background: #fff4dd;
+      border-color: #b66a00;
+      color: #804400;
+    }
+
+    #bookingPaymentSummary.payment-paid {
+      background: #e7f6ec;
+      border-color: #238449;
+      color: #145c31;
+    }
+
+    .unit-list-photo {
+      position: relative;
+      flex: 0 0 64px;
+      width: 64px;
+      height: 64px;
+      overflow: hidden;
+      border: 1px solid #d4e1ea;
+      border-radius: 6px;
+      background: #f3f6f8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .unit-list-photo img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: white;
+    }
+
+    .unit-list-photo span {
+      font-size: 11px;
+      color: #607080;
+    }
+
+    :is(
+      #unitManager,
+      #deliveryAreaManager,
+      #calendarSection
+    ) > summary {
+      cursor: pointer;
+      font-size: 1.17em;
+      font-weight: bold;
+      padding: 4px 0;
+    }
+
+    :is(
+      #unitManager,
+      #deliveryAreaManager,
+      #calendarSection
+    ) > summary:focus-visible {
+      outline: 2px solid #1674ca;
+      outline-offset: 5px;
+      border-radius: 3px;
+    }
+
+    :is(
+      #unitManager,
+      #deliveryAreaManager,
+      #calendarSection
+    )[open] > summary {
+      margin-bottom: 16px;
+    }
+
+    /* DELIVERY AREA MANAGER */
+
+    #deliveryAreaEditor {
+      max-width: 520px;
+      margin-top: 20px;
+      padding-top: 18px;
+      border-top: 1px solid #ddd;
+    }
+
+    #deliveryAreaEditor input[type="text"],
+    #deliveryAreaEditor input[type="number"] {
+      display: block;
+      box-sizing: border-box;
+      width: 100%;
+      padding: 10px;
+      margin: 6px 0 16px;
+    }
+
+    .delivery-active-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 8px 0 18px;
+    }
+
+    .delivery-active-row input {
+      width: 22px;
+      height: 22px;
+    }
+
+    .delivery-area-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 0;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .delivery-area-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .delivery-area-city {
+      font-weight: bold;
+      font-size: 16px;
+    }
+
+    .delivery-area-fee {
+      margin-top: 4px;
+    }
+
+    .delivery-area-inactive {
+      margin-top: 5px;
+      color: #8b1e1e;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .delivery-area-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .delivery-area-actions button {
+      padding: 8px 10px;
+    }
+
+    .delivery-free {
+      color: #176b38;
+      font-weight: bold;
+    }
+
+    @media(max-width:500px) {
+      .delivery-area-row {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .delivery-area-actions {
+        width: 100%;
+      }
+    }
   </style>
 </head>
+
 <body>
+
   <p id="accessStatus" role="status">Checking admin access…</p>
+
   <div id="adminApp" hidden>
-  <header>
-    <h2>📋 Admin Dashboard</h2>
-    <div class="controls">
-      <button onclick="logout()">Log Out</button>
-    </div>
-  </header>
 
-  <main><details id="unitManager" style="margin:24px 0;padding:20px;border:1px solid #ccc;border-radius:10px">
-  <summary>Units &amp; Pricing</summary><p>Edit a unit and choose Hide to remove it from the customer page without deleting its booking history. Choose Unhide to show it again.</p>
-  <p>Set a rental price and non-refundable deposit for each unit. Changes apply to new checkouts; payments already started keep their saved amounts.</p>
-  <button type="button" onclick="loadManagedUnits()">Load units</button>
-  <button type="button" onclick="editManagedUnit()">Add unit</button>
-  <p id="unitManagerStatus" role="status"></p>
-  <p>Drag the ☰ handle to rearrange units, the order saves when you drop.</p><button type="button" id="saveUnitOrder" onclick="saveManagedOrder()" disabled hidden>Retry save</button> <button type="button" id="cancelUnitOrder" onclick="cancelManagedOrder()" disabled hidden>Discard local changes</button><div id="managedUnitList"></div>
-  <form id="unitEditor" hidden style="max-width:520px;margin-top:20px">
-    <h4 id="unitEditorTitle">Edit unit</h4>
-    <fieldset id="unitEditorFields" style="border:0;padding:0">
-      <label for="unitName">Unit name</label><input id="unitName" required maxlength="300">
-      <label for="unitPrice">Rental price ($)</label><input id="unitPrice" type="number" min="0.01" max="1000000" step="0.01" required>
-      <label for="unitDeposit">Deposit ($)</label><input id="unitDeposit" type="number" min="0.01" step="0.01" required>
-      <p>The deposit must be greater than $0 and no more than the rental price. For a $1 test, set both amounts to $1.</p>
-      <label for="unitPhoto">Photo URL</label><input id="unitPhoto" type="url" maxlength="2000" placeholder="https://…">
-      <label for="unitOrder">Display order</label><input id="unitOrder" maxlength="100">
-      <button type="submit">Save unit</button><button type="button" id="deleteUnitBtn" onclick="deleteManagedUnit()" hidden style="color:#a11919;margin-left:8px">Delete unit</button><button type="button" id="unitVisibilityBtn" onclick="setManagedUnitHidden(editingUnitId)" hidden style="margin-left:8px">Hide</button><button type="button" onclick="document.getElementById('unitEditor').hidden=true">Cancel</button>
-    </fieldset>
-  </form>
-</details>
-    <details id="calendarSection" ontoggle="toggleCalendar()" style="margin:24px 0;padding:20px;border:1px solid #ccc;border-radius:10px"><summary>View Bookings Calendar</summary>
-      <div style="margin-top: 1rem;">
-        <label for="unitSelect">Filter by Unit:</label>
-        <select id="unitSelect">
-          <option value="all">All Units</option>
-        </select>
+    <header>
+      <h2>📋 Admin Dashboard</h2>
+
+      <div class="controls">
+        <button onclick="logout()">Log Out</button>
       </div>
-      <div id="calendar"></div>
-    </details>
-<details id="phoneReminders" style="margin:24px 0;padding:20px;border:1px solid #ccc;border-radius:10px"><summary style="cursor:pointer;font-size:1.17em;font-weight:bold">Phone reminders</summary>
-<p>Tomorrow’s bookings at 1 PM Mountain Time. No message on days without upcoming bookings.</p><p>Enable from Chrome on your Android phone. Booking names, units, and rental balances may appear on your lock screen.</p>
-<button type="button" onclick="phoneReminders('subscribe')">Enable on this phone</button>
-<button type="button" onclick="phoneReminders('test')">Send test notification</button>
-<button type="button" onclick="phoneReminders('unsubscribe')">Turn off on this phone</button>
-<p id="phoneReminderStatus" role="status"></p></details><section><h3>Payment follow-up</h3><button type="button" onclick="loadPaymentStatus()">Check payments and emails</button><div id="paymentFollowup" role="status"></div></section>
+    </header>
 
-    <button onclick="loadWaivers()">📄 View Waivers</button>
+    <main>
 
-    <div id="waiverCalendarSection" class="hidden">
-      <h3>Signed Waivers Calendar</h3>
-      <div id="waiverCalendar"></div>
+      <!-- =====================================================
+           UNITS & PRICING
+      ====================================================== -->
+
+      <details
+        id="unitManager"
+        style="margin:24px 0;padding:20px;border:1px solid #ccc;border-radius:10px"
+      >
+        <summary>Units &amp; Pricing</summary>
+
+        <p>
+          Edit a unit and choose Hide to remove it from the customer page
+          without deleting its booking history. Choose Unhide to show it again.
+        </p>
+
+        <p>
+          Set a rental price and non-refundable deposit for each unit.
+          Changes apply to new checkouts; payments already started keep
+          their saved amounts.
+        </p>
+
+        <button type="button" onclick="loadManagedUnits()">
+          Load units
+        </button>
+
+        <button type="button" onclick="editManagedUnit()">
+          Add unit
+        </button>
+
+        <p id="unitManagerStatus" role="status"></p>
+
+        <p>
+          Drag the ☰ handle to rearrange units, the order saves when you drop.
+        </p>
+
+        <button
+          type="button"
+          id="saveUnitOrder"
+          onclick="saveManagedOrder()"
+          disabled
+          hidden
+        >
+          Retry save
+        </button>
+
+        <button
+          type="button"
+          id="cancelUnitOrder"
+          onclick="cancelManagedOrder()"
+          disabled
+          hidden
+        >
+          Discard local changes
+        </button>
+
+        <div id="managedUnitList"></div>
+
+        <form id="unitEditor" hidden style="max-width:520px;margin-top:20px">
+
+          <h4 id="unitEditorTitle">Edit unit</h4>
+
+          <fieldset id="unitEditorFields" style="border:0;padding:0">
+
+            <label for="unitName">Unit name</label>
+            <input id="unitName" required maxlength="300">
+
+            <label for="unitPrice">Rental price ($)</label>
+            <input
+              id="unitPrice"
+              type="number"
+              min="0.01"
+              max="1000000"
+              step="0.01"
+              required
+            >
+
+            <label for="unitDeposit">Deposit ($)</label>
+            <input
+              id="unitDeposit"
+              type="number"
+              min="0.01"
+              step="0.01"
+              required
+            >
+
+            <p>
+              The deposit must be greater than $0 and no more than the rental
+              price. For a $1 test, set both amounts to $1.
+            </p>
+
+            <label for="unitPhoto">Photo URL</label>
+            <input
+              id="unitPhoto"
+              type="url"
+              maxlength="2000"
+              placeholder="https://…"
+            >
+
+            <label for="unitOrder">Display order</label>
+            <input id="unitOrder" maxlength="100">
+
+            <button type="submit">
+              Save unit
+            </button>
+
+            <button
+              type="button"
+              id="deleteUnitBtn"
+              onclick="deleteManagedUnit()"
+              hidden
+              style="color:#a11919;margin-left:8px"
+            >
+              Delete unit
+            </button>
+
+            <button
+              type="button"
+              id="unitVisibilityBtn"
+              onclick="setManagedUnitHidden(editingUnitId)"
+              hidden
+              style="margin-left:8px"
+            >
+              Hide
+            </button>
+
+            <button
+              type="button"
+              onclick="document.getElementById('unitEditor').hidden=true"
+            >
+              Cancel
+            </button>
+
+          </fieldset>
+        </form>
+      </details>
+
+
+      <!-- =====================================================
+           DELIVERY AREAS
+      ====================================================== -->
+
+      <details
+        id="deliveryAreaManager"
+        ontoggle="deliveryAreaSectionToggled()"
+        style="margin:24px 0;padding:20px;border:1px solid #ccc;border-radius:10px"
+      >
+        <summary>Delivery Areas &amp; Fees</summary>
+
+        <p>
+          Manage the cities Slide Guys delivers to and the delivery fee
+          charged for each city.
+        </p>
+
+        <p>
+          Set the fee to <strong>$0.00</strong> for free delivery.
+          Turn a city inactive to remove it from future customer reservations
+          without deleting it.
+        </p>
+
+        <button
+          type="button"
+          onclick="loadDeliveryAreas()"
+        >
+          Refresh cities
+        </button>
+
+        <button
+          type="button"
+          onclick="editDeliveryArea()"
+        >
+          + Add city
+        </button>
+
+        <p id="deliveryAreaStatus" role="status"></p>
+
+        <div id="deliveryAreaList"></div>
+
+        <form id="deliveryAreaEditor" hidden>
+
+          <h4 id="deliveryAreaEditorTitle">
+            Add delivery area
+          </h4>
+
+          <fieldset
+            id="deliveryAreaFields"
+            style="border:0;padding:0"
+          >
+
+            <label for="deliveryCity">
+              City
+            </label>
+
+            <input
+              id="deliveryCity"
+              type="text"
+              maxlength="150"
+              placeholder="Example: Marysvale"
+              required
+            >
+
+            <label for="deliveryFee">
+              Delivery fee ($)
+            </label>
+
+            <input
+              id="deliveryFee"
+              type="number"
+              min="0"
+              max="10000"
+              step="0.01"
+              placeholder="0.00"
+              required
+            >
+
+            <div class="delivery-active-row">
+              <input
+                id="deliveryActive"
+                type="checkbox"
+                checked
+              >
+
+              <label for="deliveryActive">
+                Active — show this city to customers
+              </label>
+            </div>
+
+            <button type="submit">
+              Save city
+            </button>
+
+            <button
+              type="button"
+              id="deleteDeliveryAreaBtn"
+              onclick="deleteDeliveryArea()"
+              hidden
+              style="color:#a11919;margin-left:8px"
+            >
+              Delete city
+            </button>
+
+            <button
+              type="button"
+              onclick="cancelDeliveryAreaEdit()"
+            >
+              Cancel
+            </button>
+
+          </fieldset>
+        </form>
+
+      </details>
+
+
+      <!-- =====================================================
+           BOOKINGS CALENDAR
+      ====================================================== -->
+
+      <details
+        id="calendarSection"
+        ontoggle="toggleCalendar()"
+        style="margin:24px 0;padding:20px;border:1px solid #ccc;border-radius:10px"
+      >
+
+        <summary>View Bookings Calendar</summary>
+
+        <div style="margin-top:1rem;">
+          <label for="unitSelect">
+            Filter by Unit:
+          </label>
+
+          <select id="unitSelect">
+            <option value="all">
+              All Units
+            </option>
+          </select>
+        </div>
+
+        <div id="calendar"></div>
+
+      </details>
+
+
+      <!-- =====================================================
+           PHONE REMINDERS
+      ====================================================== -->
+
+      <details
+        id="phoneReminders"
+        style="margin:24px 0;padding:20px;border:1px solid #ccc;border-radius:10px"
+      >
+
+        <summary
+          style="cursor:pointer;font-size:1.17em;font-weight:bold"
+        >
+          Phone reminders
+        </summary>
+
+        <p>
+          Tomorrow’s bookings at 1 PM Mountain Time.
+          No message on days without upcoming bookings.
+        </p>
+
+        <p>
+          Enable from Chrome on your Android phone.
+          Booking names, units, and rental balances may appear
+          on your lock screen.
+        </p>
+
+        <button
+          type="button"
+          onclick="phoneReminders('subscribe')"
+        >
+          Enable on this phone
+        </button>
+
+        <button
+          type="button"
+          onclick="phoneReminders('test')"
+        >
+          Send test notification
+        </button>
+
+        <button
+          type="button"
+          onclick="phoneReminders('unsubscribe')"
+        >
+          Turn off on this phone
+        </button>
+
+        <p
+          id="phoneReminderStatus"
+          role="status"
+        ></p>
+
+      </details>
+
+
+      <!-- =====================================================
+           PAYMENT FOLLOW-UP
+      ====================================================== -->
+
+      <section>
+
+        <h3>Payment follow-up</h3>
+
+        <button
+          type="button"
+          onclick="loadPaymentStatus()"
+        >
+          Check payments and emails
+        </button>
+
+        <div
+          id="paymentFollowup"
+          role="status"
+        ></div>
+
+      </section>
+
+
+      <button onclick="loadWaivers()">
+        📄 View Waivers
+      </button>
+
+
+      <div
+        id="waiverCalendarSection"
+        class="hidden"
+      >
+
+        <h3>Signed Waivers Calendar</h3>
+
+        <div id="waiverCalendar"></div>
+
+      </div>
+
+    </main>
+
+
+    <!-- =====================================================
+         BOOKING EDIT MODAL
+    ====================================================== -->
+
+    <div
+      class="modal"
+      id="editModal"
+    >
+
+      <div class="modal-content">
+
+        <h3>Edit Booking</h3>
+
+        <input
+          type="text"
+          id="editName"
+          placeholder="Name"
+        />
+
+        <input
+          type="email"
+          id="editEmail"
+          placeholder="Email"
+        />
+
+        <input
+          type="tel"
+          id="editPhone"
+          placeholder="Phone"
+        />
+
+        <input
+          type="text"
+          id="editAddress"
+          placeholder="Address"
+        />
+
+        <input
+          type="text"
+          id="editCity"
+          placeholder="City"
+        />
+
+        <input
+          type="date"
+          id="editDate"
+        />
+
+        <select id="editUnit"></select>
+
+        <section
+          id="bookingPaymentSummary"
+          role="status"
+          aria-live="polite"
+          hidden
+        ></section>
+
+        <button onclick="saveBookingChanges()">
+          💾 Save
+        </button>
+
+        <button onclick="createNewBooking()">
+          ➕ Create
+        </button>
+
+        <button onclick="deleteBooking()">
+          🗑️ Delete
+        </button>
+
+        <button onclick="closeModal()">
+          Cancel
+        </button>
+
+      </div>
     </div>
-  </main>
 
-  <div class="modal" id="editModal">
-    <div class="modal-content">
-      <h3>Edit Booking</h3>
-      <input type="text" id="editName" placeholder="Name" />
-      <input type="email" id="editEmail" placeholder="Email" />
-      <input type="tel" id="editPhone" placeholder="Phone" />
-      <input type="text" id="editAddress" placeholder="Address" />
-      <input type="text" id="editCity" placeholder="City" />
-      <input type="date" id="editDate" />
-      <select id="editUnit"></select><section id="bookingPaymentSummary" role="status" aria-live="polite" hidden></section>
-      <button onclick="saveBookingChanges()">💾 Save</button>
-      <button onclick="createNewBooking()">➕ Create</button>
-      <button onclick="deleteBooking()">🗑️ Delete</button>
-      <button onclick="closeModal()">Cancel</button>
-    </div>
   </div>
 
-  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
   <script>
+
+    /* =========================================================
+       SUPABASE
+    ========================================================= */
+
     const bookingClient = supabase.createClient(
       'https://vaobmohukgcqfvnclqyh.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhb2Jtb2h1a2djcWZ2bmNscXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3NTcyNzksImV4cCI6MjA2MDMzMzI3OX0.6pl5QBTVUr8wu3bn4kXhI2kPE5qf97PrIbUw7-0382M'
@@ -156,544 +804,3574 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtY2lkdnd1dWlyYnFnaGp4eG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMTU3MTYsImV4cCI6MjA2MjY5MTcxNn0.v45HvSFMpwdaw1zDbOZDcHtkAuY44X6H5FIKmH0JPEk'
     );
 
+
+    /* =========================================================
+       ADMIN ACCESS
+    ========================================================= */
+
     let adminReady = false;
+
     async function verifyAdmin() {
+
       try {
-        const { data, error } = await bookingClient.rpc('sg_is_admin');
-        if (error || data !== true) throw new Error('Access unavailable');
+
+        const { data, error } =
+          await bookingClient.rpc('sg_is_admin');
+
+        if (error || data !== true)
+          throw new Error('Access unavailable');
+
         adminReady = true;
+
         document.getElementById('accessStatus').hidden = true;
         document.getElementById('adminApp').hidden = false;
-        if(new URLSearchParams(location.search).has('bookings'))document.getElementById('calendarSection').open=true;
+
+        if (
+          new URLSearchParams(location.search).has('bookings')
+        ) {
+          document.getElementById('calendarSection').open = true;
+        }
+
         return true;
+
       } catch (_) {
+
         adminReady = false;
+
         document.getElementById('adminApp').hidden = true;
+
         document.getElementById('accessStatus').hidden = false;
-        document.getElementById('accessStatus').textContent = 'Admin access could not be verified. Please sign in again.';
+
+        document.getElementById('accessStatus').textContent =
+          'Admin access could not be verified. Please sign in again.';
+
         return false;
       }
     }
+
+
     bookingClient.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT') window.location.replace('login.html');
+
+      if (event === 'SIGNED_OUT')
+        window.location.replace('login.html');
+
     });
+
+
     verifyAdmin().then(ok => {
+
       if (!ok) {
+
         const link = document.createElement('a');
-        link.href = 'login.html'; link.textContent = ' Go to login';
-        document.getElementById('accessStatus').appendChild(link);
+
+        link.href = 'login.html';
+        link.textContent = ' Go to login';
+
+        document
+          .getElementById('accessStatus')
+          .appendChild(link);
       }
     });
+
+
     let calendar;
     let waiverCalendar;
     let unitMap = {};
     let currentEditId = null;
 
+
+    /* =========================================================
+       BOOKING CALENDAR
+    ========================================================= */
+
     function toggleCalendar() {
+
       if (!adminReady) return;
-      const section = document.getElementById('calendarSection');
-      const calendarEl = document.getElementById('calendar');
+
+      const section =
+        document.getElementById('calendarSection');
+
+      const calendarEl =
+        document.getElementById('calendar');
+
 
       if (section.open) {
 
         calendarEl.style.display = 'block';
 
         if (!calendar) {
-          calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth',
-            selectable: true,
-            headerToolbar: {
-              left: 'prev,next today',
-              center: 'title',
-              right: ''
-            },
-            dateClick: function(info) {
-              const date = info.dateStr;
-              openModal({date, unit: document.getElementById('unitSelect').value === 'all' ? '' : document.getElementById('unitSelect').value});
-            },
-            eventClick: function(info) {
-              const booking = info.event.extendedProps.booking;
-              openModal(booking);
-            }
-          });
+
+          calendar =
+            new FullCalendar.Calendar(calendarEl, {
+
+              initialView: 'dayGridMonth',
+
+              selectable: true,
+
+              headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: ''
+              },
+
+              dateClick: function(info) {
+
+                const date = info.dateStr;
+
+                openModal({
+                  date,
+                  unit:
+                    document.getElementById('unitSelect').value === 'all'
+                      ? ''
+                      : document.getElementById('unitSelect').value
+                });
+              },
+
+              eventClick: function(info) {
+
+                const booking =
+                  info.event.extendedProps.booking;
+
+                openModal(booking);
+              }
+
+            });
+
           calendar.render();
+
           populateUnitDropdown();
+
         } else {
+
           calendar.updateSize();
         }
+
       } else {
 
         calendarEl.style.display = 'none';
       }
     }
 
+
     async function populateUnitDropdown() {
-      const { data, error } = await bookingClient.from('units').select();
+
+      const { data, error } =
+        await bookingClient
+          .from('units')
+          .select();
+
       if (error) {
+
         alert('Error fetching units');
         return;
       }
 
-      const select = document.getElementById('unitSelect');
-      const editUnit = document.getElementById('editUnit');
-      const priorFilter=select.value,priorEdit=editUnit.value;
-      select.innerHTML = '<option value="all">All Units</option>';
+
+      const select =
+        document.getElementById('unitSelect');
+
+      const editUnit =
+        document.getElementById('editUnit');
+
+      const priorFilter = select.value;
+      const priorEdit = editUnit.value;
+
+      select.innerHTML =
+        '<option value="all">All Units</option>';
+
       editUnit.innerHTML = '';
 
+
       data.forEach(unit => {
+
         unitMap[unit.id] = unit.name;
 
-        const option = document.createElement('option');
+        const option =
+          document.createElement('option');
+
         option.value = unit.id;
         option.textContent = unit.name;
+
         select.appendChild(option);
 
-        const editOption = option.cloneNode(true);
+        const editOption =
+          option.cloneNode(true);
+
         editUnit.appendChild(editOption);
       });
 
-      select.value=data.some(u=>u.id===priorFilter)?priorFilter:'all';
-      if(data.some(u=>u.id===priorEdit))editUnit.value=priorEdit;
+
+      select.value =
+        data.some(u => u.id === priorFilter)
+          ? priorFilter
+          : 'all';
+
+      if (data.some(u => u.id === priorEdit))
+        editUnit.value = priorEdit;
+
+
       select.onchange = async () => {
+
         const selectedUnit = select.value;
+
         await loadAllBookings(selectedUnit);
       };
+
 
       await loadAllBookings();
     }
 
-    async function loadAllBookings(filterUnitId = document.getElementById('unitSelect').value || 'all') {
-      let query = bookingClient.from('bookings').select(`
-        id, date, unit, name, email, phone, address,city
-      `);
+
+    async function loadAllBookings(
+      filterUnitId =
+        document.getElementById('unitSelect').value || 'all'
+    ) {
+
+      let query =
+        bookingClient
+          .from('bookings')
+          .select(`
+            id,
+            date,
+            unit,
+            name,
+            email,
+            phone,
+            address,
+            city
+          `);
+
 
       if (filterUnitId !== 'all') {
-        query = query.eq('unit', filterUnitId);
+
+        query =
+          query.eq('unit', filterUnitId);
       }
 
-      const { data, error } = await query;
+
+      const { data, error } =
+        await query;
+
+
       if (error) {
+
         alert('Error loading bookings');
         return;
       }
 
+
       calendar.removeAllEvents();
 
+
       data.forEach(booking => {
-        const unitName = unitMap[booking.unit] || 'Unknown Unit';
+
+        const unitName =
+          unitMap[booking.unit] || 'Unknown Unit';
+
         calendar.addEvent({
+
           title: `${booking.name}`,
+
           start: booking.date,
+
           allDay: true,
+
           extendedProps: {
-            booking: { ...booking, unitName }
+            booking: {
+              ...booking,
+              unitName
+            }
           }
+
         });
       });
     }
 
+
+    /* =========================================================
+       WAIVERS
+    ========================================================= */
+
     async function loadWaivers() {
-      if (!(await verifyAdmin())) return;
-      const section = document.getElementById('waiverCalendarSection');
-      const calendarEl = document.getElementById('waiverCalendar');
+
+      if (!(await verifyAdmin()))
+        return;
+
+
+      const section =
+        document.getElementById(
+          'waiverCalendarSection'
+        );
+
+      const calendarEl =
+        document.getElementById(
+          'waiverCalendar'
+        );
+
 
       if (section.classList.contains('hidden')) {
+
         section.classList.remove('hidden');
 
+
         if (!waiverCalendar) {
-          waiverCalendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth',
-            headerToolbar: {
-              left: 'prev,next today',
-              center: 'title',
-              right: ''
-            },
-            eventClick: function(info) {
-              const { children } = info.event.extendedProps;
-              alert(`Children:\n${children.join('\n')}`);
-            }
-          });
+
+          waiverCalendar =
+            new FullCalendar.Calendar(
+              calendarEl,
+              {
+
+                initialView:
+                  'dayGridMonth',
+
+                headerToolbar: {
+                  left:
+                    'prev,next today',
+                  center:
+                    'title',
+                  right:
+                    ''
+                },
+
+                eventClick:
+                  function(info) {
+
+                    const { children } =
+                      info.event.extendedProps;
+
+                    alert(
+                      `Children:\n${children.join('\n')}`
+                    );
+                  }
+
+              }
+            );
+
           waiverCalendar.render();
         }
 
-        const { data, error } = await waiverClient
-          .from('waivers')
-          .select()
-          .order('signed_date', { ascending: true });
+
+        const { data, error } =
+          await waiverClient
+            .from('waivers')
+            .select()
+            .order(
+              'signed_date',
+              { ascending: true }
+            );
+
 
         if (error) {
-          alert('Failed to load waivers: ' + error.message);
+
+          alert(
+            'Failed to load waivers: ' +
+            error.message
+          );
+
           return;
         }
 
+
         const grouped = {};
 
+
         data.forEach(waiver => {
-          const key = `${waiver.parent_first_name} ${waiver.parent_last_name}|${waiver.signed_date}`;
+
+          const key =
+            `${waiver.parent_first_name} ${waiver.parent_last_name}|${waiver.signed_date}`;
+
           if (!grouped[key]) {
+
             grouped[key] = {
-              parent: `${waiver.parent_first_name} ${waiver.parent_last_name}`,
-              date: waiver.signed_date,
+
+              parent:
+                `${waiver.parent_first_name} ${waiver.parent_last_name}`,
+
+              date:
+                waiver.signed_date,
+
               children: []
             };
           }
-          grouped[key].children.push(`${waiver.child_first_name} ${waiver.child_last_name}`);
+
+          grouped[key].children.push(
+            `${waiver.child_first_name} ${waiver.child_last_name}`
+          );
         });
+
 
         waiverCalendar.removeAllEvents();
 
-        Object.values(grouped).forEach(entry => {
-          waiverCalendar.addEvent({
-            title: entry.parent,
-            start: entry.date,
-            allDay: true,
-            extendedProps: {
-              children: entry.children
-            }
+
+        Object.values(grouped)
+          .forEach(entry => {
+
+            waiverCalendar.addEvent({
+
+              title:
+                entry.parent,
+
+              start:
+                entry.date,
+
+              allDay:
+                true,
+
+              extendedProps: {
+                children:
+                  entry.children
+              }
+
+            });
           });
-        });
+
 
       } else {
+
         section.classList.add('hidden');
       }
     }
 
+
+    /* =========================================================
+       BOOKING EDITOR
+    ========================================================= */
+
     function openModal(booking) {
-      currentEditId = booking.id || null;
-      loadBookingBalance(currentEditId);
-      document.getElementById('editName').value = booking.name || '';
-      document.getElementById('editEmail').value = booking.email || '';
-      document.getElementById('editPhone').value = booking.phone || '';
-      document.getElementById('editAddress').value = booking.address || '';
-      document.getElementById('editCity').value = booking.city || '';
-      document.getElementById('editDate').value = booking.date || '';
-      document.getElementById('editUnit').value = booking.unit || '';
-      document.getElementById('editModal').style.display = 'flex';
+
+      currentEditId =
+        booking.id || null;
+
+      loadBookingBalance(
+        currentEditId
+      );
+
+      document.getElementById('editName').value =
+        booking.name || '';
+
+      document.getElementById('editEmail').value =
+        booking.email || '';
+
+      document.getElementById('editPhone').value =
+        booking.phone || '';
+
+      document.getElementById('editAddress').value =
+        booking.address || '';
+
+      document.getElementById('editCity').value =
+        booking.city || '';
+
+      document.getElementById('editDate').value =
+        booking.date || '';
+
+      document.getElementById('editUnit').value =
+        booking.unit || '';
+
+      document.getElementById('editModal').style.display =
+        'flex';
     }
 
+
     function closeModal() {
+
       ++bookingBalanceRequest;
-      document.getElementById('editModal').style.display = 'none';
+
+      document.getElementById('editModal').style.display =
+        'none';
+
       currentEditId = null;
     }
 
+
     async function saveBookingChanges() {
-      if (!(await verifyAdmin())) return;
-      if (!currentEditId) { alert('Select an existing booking to save.'); return; }
+
+      if (!(await verifyAdmin()))
+        return;
+
+
+      if (!currentEditId) {
+
+        alert(
+          'Select an existing booking to save.'
+        );
+
+        return;
+      }
+
+
       const updated = {
-        name: document.getElementById('editName').value,
-        email: document.getElementById('editEmail').value,
-        phone: document.getElementById('editPhone').value,
-        address: document.getElementById('editAddress').value,
-        city: document.getElementById('editCity').value,
-        date: document.getElementById('editDate').value,
-        unit: document.getElementById('editUnit').value
+
+        name:
+          document.getElementById('editName').value,
+
+        email:
+          document.getElementById('editEmail').value,
+
+        phone:
+          document.getElementById('editPhone').value,
+
+        address:
+          document.getElementById('editAddress').value,
+
+        city:
+          document.getElementById('editCity').value,
+
+        date:
+          document.getElementById('editDate').value,
+
+        unit:
+          document.getElementById('editUnit').value
+
       };
 
-      const { error } = await bookingClient.from('bookings').update(updated).eq('id', currentEditId);
+
+      const { error } =
+        await bookingClient
+          .from('bookings')
+          .update(updated)
+          .eq('id', currentEditId);
+
+
       if (error) {
-        alert(error.code === '23505' ? 'That slide is already reserved for this date. Your original booking was kept.' : 'Failed to save booking: ' + error.message);
+
+        alert(
+          error.code === '23505'
+            ? 'That slide is already reserved for this date. Your original booking was kept.'
+            : 'Failed to save booking: ' + error.message
+        );
+
       } else {
+
         closeModal();
+
         loadAllBookings();
       }
     }
+
 
     async function createNewBooking() {
-      if (!(await verifyAdmin())) return;
+
+      if (!(await verifyAdmin()))
+        return;
+
+
       const newBooking = {
-        name: document.getElementById('editName').value,
-        email: document.getElementById('editEmail').value,
-        phone: document.getElementById('editPhone').value,
-        address: document.getElementById('editAddress').value,
-        city: document.getElementById('editCity').value,
-        date: document.getElementById('editDate').value,
-        unit: document.getElementById('editUnit').value
+
+        name:
+          document.getElementById('editName').value,
+
+        email:
+          document.getElementById('editEmail').value,
+
+        phone:
+          document.getElementById('editPhone').value,
+
+        address:
+          document.getElementById('editAddress').value,
+
+        city:
+          document.getElementById('editCity').value,
+
+        date:
+          document.getElementById('editDate').value,
+
+        unit:
+          document.getElementById('editUnit').value
+
       };
 
-      const { error } = await bookingClient.from('bookings').insert(newBooking);
+
+      const { error } =
+        await bookingClient
+          .from('bookings')
+          .insert(newBooking);
+
+
       if (error) {
-        alert(error.code === '23505' ? 'That slide is already reserved for this date.' : 'Failed to create booking: ' + error.message);
+
+        alert(
+          error.code === '23505'
+            ? 'That slide is already reserved for this date.'
+            : 'Failed to create booking: ' + error.message
+        );
+
       } else {
+
         closeModal();
+
         loadAllBookings();
       }
     }
+
 
     async function deleteBooking() {
-      if (!(await verifyAdmin())) return;
-      if (!currentEditId) return;
-      if (!confirm("Are you sure you want to delete this booking?")) return;
 
-      const { error } = await bookingClient.from('bookings').delete().eq('id', currentEditId);
+      if (!(await verifyAdmin()))
+        return;
+
+      if (!currentEditId)
+        return;
+
+      if (!confirm(
+        'Are you sure you want to delete this booking?'
+      ))
+        return;
+
+
+      const { error } =
+        await bookingClient
+          .from('bookings')
+          .delete()
+          .eq('id', currentEditId);
+
+
       if (error) {
+
         alert('Failed to delete booking');
+
       } else {
+
         closeModal();
+
         loadAllBookings();
       }
     }
 
-    async function loadPaymentStatus() {
-      if (!(await verifyAdmin())) return;
-      const target = document.getElementById('paymentFollowup');
-      target.textContent = 'Checking…';
-      try {
-        const {data,error} = await bookingClient.rpc('sg_live_admin_status');
-        if(error) throw error;
-        target.replaceChildren();
-        const summary = document.createElement('p');
-        summary.textContent = (data.accepting_checkouts ? 'New checkout is enabled. ' : 'New checkout is paused. ') + data.pending_emails + ' emails waiting.';
-        target.appendChild(summary);
-        for(const item of data.payments) {
-          const row = document.createElement('p');
-          row.textContent = 'Review payment: ' + item.checkout + ' · PayPal ' + item.order + ' · ' + item.status + '. Check this existing payment before taking any new payment.';
-          target.appendChild(row);
-        }
-        for(const item of data.emails) {
-          const row = document.createElement('p');
-          row.textContent = 'Review email delivery: ' + item.checkout + ' · template ' + item.template + ' · job ' + item.job + '. Check EmailJS history before resending.';
-          target.appendChild(row);
-        }
-        if(!data.payments.length && !data.emails.length) {
-          const row = document.createElement('p'); row.textContent='No payments or emails are flagged for review.'; target.appendChild(row);
-        }
-      } catch (_) { target.textContent='Could not load payment status. Check the connection and try again.'; }
-    }
-    let managedUnits=[],editingUnitId=null,creatingUnit=false,unitSaveBusy=false;
-    const unitMoney=n=>'$'+Number(n).toFixed(2);
-    async function loadManagedUnits(){
-      if(orderBusy||orderDirty){document.getElementById('unitManagerStatus').textContent='Save or cancel your order changes first.';return;}
-      if(!(await verifyAdmin()))return;
-      const status=document.getElementById('unitManagerStatus');status.textContent='Loading units…';
-      try{
-        const {data,error}=await bookingClient.from('units').select('id,name,price,deposit_amount,thumbnail_url,order,is_hidden').order('order',{ascending:true});
-        if(error)throw error;managedUnits=data||[];
-        savedUnitOrder=managedUnits.map(u=>({...u}));orderDirty=false;renderManagedUnits();
-        status.textContent=managedUnits.length?'Choose a unit to edit.':'No units yet. Add your first unit.';
-      }catch(_){status.textContent='Could not load units. Check your connection and that the pricing SQL update is installed.';}
-    }
-    function editManagedUnit(id){
-      if(!adminReady||unitSaveBusy||orderBusy||orderDirty)return;
-      const unit=id?managedUnits.find(u=>u.id===id):null;if(id&&!unit)return;
-      creatingUnit=!unit;editingUnitId=unit?.id||crypto.randomUUID();
-      document.getElementById('deleteUnitBtn').hidden=!unit;
-      document.getElementById('unitVisibilityBtn').hidden=!unit;
-      document.getElementById('unitVisibilityBtn').textContent=unit?.is_hidden?'Unhide':'Hide';
-      document.getElementById('unitEditorTitle').textContent=unit?'Edit unit':'Add unit';
-      for(const [field,value] of Object.entries({unitName:unit?.name||'',unitPrice:unit?.price||'',unitDeposit:unit?.deposit_amount??50,unitPhoto:unit?.thumbnail_url||'',unitOrder:unit?.order||''}))document.getElementById(field).value=value;
-      document.getElementById('unitDeposit').max=unit?.price||1000000;
-      document.getElementById('unitEditor').hidden=false;document.getElementById('unitName').focus();
-    }
-    document.getElementById('unitPrice').addEventListener('input',()=>{document.getElementById('unitDeposit').max=document.getElementById('unitPrice').value||1000000;});
-    document.getElementById('unitEditor').addEventListener('submit',async event=>{
-      event.preventDefault();if(unitSaveBusy)return;
-      const form=event.currentTarget;if(!form.reportValidity())return;
-      unitSaveBusy=true;document.getElementById('unitEditorFields').disabled=true;
-      const status=document.getElementById('unitManagerStatus');status.textContent='Saving…';
-      try{
-        if(!(await verifyAdmin()))throw Error('Please sign in again.');
-        const get=id=>document.getElementById(id).value.trim();
-        const {data,error}=await bookingClient.rpc('sg_save_unit',{p_id:editingUnitId,p_create:creatingUnit,p_name:get('unitName'),p_price:get('unitPrice'),p_deposit:get('unitDeposit'),p_thumbnail:get('unitPhoto'),p_order:get('unitOrder')});
-        if(error||data!==editingUnitId)throw Error(error?.message||'Save could not be verified.');
-        creatingUnit=false;document.getElementById('unitEditor').hidden=true;
-        await loadManagedUnits();
-        if(calendar)await populateUnitDropdown();
-        status.textContent='Unit saved. New checkouts will use these amounts. Refresh the customer page to see the update.';
-      }catch(error){status.textContent='Could not confirm the save: '+error.message+' Reload units before adding another copy.';}
-      finally{unitSaveBusy=false;document.getElementById('unitEditorFields').disabled=false;renderManagedUnits();}
-    });
 
-    let savedUnitOrder=[],orderDirty=false,orderBusy=false,unitDrag=null;
-    function updateOrderControls(){
-      document.getElementById('saveUnitOrder').disabled=!orderDirty||orderBusy||unitSaveBusy;
-      document.getElementById('cancelUnitOrder').disabled=!orderDirty||orderBusy;
-      document.getElementById('saveUnitOrder').hidden=!orderDirty||orderBusy||!!unitDrag;
-      document.getElementById('cancelUnitOrder').hidden=!orderDirty||orderBusy||!!unitDrag;
+    /* =========================================================
+       PAYMENT FOLLOW-UP
+    ========================================================= */
+
+    async function loadPaymentStatus() {
+
+      if (!(await verifyAdmin()))
+        return;
+
+
+      const target =
+        document.getElementById(
+          'paymentFollowup'
+        );
+
+      target.textContent =
+        'Checking…';
+
+
+      try {
+
+        const { data, error } =
+          await bookingClient.rpc(
+            'sg_live_admin_status'
+          );
+
+        if (error)
+          throw error;
+
+
+        target.replaceChildren();
+
+
+        const summary =
+          document.createElement('p');
+
+        summary.textContent =
+          (
+            data.accepting_checkouts
+              ? 'New checkout is enabled. '
+              : 'New checkout is paused. '
+          ) +
+          data.pending_emails +
+          ' emails waiting.';
+
+        target.appendChild(summary);
+
+
+        for (const item of data.payments) {
+
+          const row =
+            document.createElement('p');
+
+          row.textContent =
+            'Review payment: ' +
+            item.checkout +
+            ' · PayPal ' +
+            item.order +
+            ' · ' +
+            item.status +
+            '. Check this existing payment before taking any new payment.';
+
+          target.appendChild(row);
+        }
+
+
+        for (const item of data.emails) {
+
+          const row =
+            document.createElement('p');
+
+          row.textContent =
+            'Review email delivery: ' +
+            item.checkout +
+            ' · template ' +
+            item.template +
+            ' · job ' +
+            item.job +
+            '. Check EmailJS history before resending.';
+
+          target.appendChild(row);
+        }
+
+
+        if (
+          !data.payments.length &&
+          !data.emails.length
+        ) {
+
+          const row =
+            document.createElement('p');
+
+          row.textContent =
+            'No payments or emails are flagged for review.';
+
+          target.appendChild(row);
+        }
+
+
+      } catch (_) {
+
+        target.textContent =
+          'Could not load payment status. Check the connection and try again.';
+      }
     }
-    function canReorder(){
-      if(orderBusy||unitSaveBusy||!adminReady)return false;
-      if(!document.getElementById('unitEditor').hidden){document.getElementById('unitManagerStatus').textContent='Save or cancel the unit edit before changing the order.';return false;}
+
+
+    /* =========================================================
+       UNIT MANAGER
+    ========================================================= */
+
+    let managedUnits = [];
+    let editingUnitId = null;
+    let creatingUnit = false;
+    let unitSaveBusy = false;
+
+
+    const unitMoney =
+      n => '$' + Number(n).toFixed(2);
+
+
+    async function loadManagedUnits() {
+
+      if (orderBusy || orderDirty) {
+
+        document.getElementById(
+          'unitManagerStatus'
+        ).textContent =
+          'Save or cancel your order changes first.';
+
+        return;
+      }
+
+
+      if (!(await verifyAdmin()))
+        return;
+
+
+      const status =
+        document.getElementById(
+          'unitManagerStatus'
+        );
+
+      status.textContent =
+        'Loading units…';
+
+
+      try {
+
+        const { data, error } =
+          await bookingClient
+            .from('units')
+            .select(
+              'id,name,price,deposit_amount,thumbnail_url,order,is_hidden'
+            )
+            .order(
+              'order',
+              { ascending: true }
+            );
+
+
+        if (error)
+          throw error;
+
+
+        managedUnits =
+          data || [];
+
+
+        savedUnitOrder =
+          managedUnits.map(
+            u => ({ ...u })
+          );
+
+
+        orderDirty = false;
+
+        renderManagedUnits();
+
+
+        status.textContent =
+          managedUnits.length
+            ? 'Choose a unit to edit.'
+            : 'No units yet. Add your first unit.';
+
+
+      } catch (_) {
+
+        status.textContent =
+          'Could not load units. Check your connection and that the pricing SQL update is installed.';
+      }
+    }
+
+
+    function editManagedUnit(id) {
+
+      if (
+        !adminReady ||
+        unitSaveBusy ||
+        orderBusy ||
+        orderDirty
+      )
+        return;
+
+
+      const unit =
+        id
+          ? managedUnits.find(
+              u => u.id === id
+            )
+          : null;
+
+
+      if (id && !unit)
+        return;
+
+
+      creatingUnit =
+        !unit;
+
+
+      editingUnitId =
+        unit?.id ||
+        crypto.randomUUID();
+
+
+      document.getElementById(
+        'deleteUnitBtn'
+      ).hidden =
+        !unit;
+
+
+      document.getElementById(
+        'unitVisibilityBtn'
+      ).hidden =
+        !unit;
+
+
+      document.getElementById(
+        'unitVisibilityBtn'
+      ).textContent =
+        unit?.is_hidden
+          ? 'Unhide'
+          : 'Hide';
+
+
+      document.getElementById(
+        'unitEditorTitle'
+      ).textContent =
+        unit
+          ? 'Edit unit'
+          : 'Add unit';
+
+
+      for (
+        const [field, value]
+        of Object.entries({
+
+          unitName:
+            unit?.name || '',
+
+          unitPrice:
+            unit?.price || '',
+
+          unitDeposit:
+            unit?.deposit_amount ?? 50,
+
+          unitPhoto:
+            unit?.thumbnail_url || '',
+
+          unitOrder:
+            unit?.order || ''
+
+        })
+      ) {
+
+        document.getElementById(
+          field
+        ).value = value;
+      }
+
+
+      document.getElementById(
+        'unitDeposit'
+      ).max =
+        unit?.price || 1000000;
+
+
+      document.getElementById(
+        'unitEditor'
+      ).hidden =
+        false;
+
+
+      document.getElementById(
+        'unitName'
+      ).focus();
+    }
+
+
+    document.getElementById(
+      'unitPrice'
+    ).addEventListener(
+      'input',
+      () => {
+
+        document.getElementById(
+          'unitDeposit'
+        ).max =
+          document.getElementById(
+            'unitPrice'
+          ).value || 1000000;
+      }
+    );
+
+
+    document.getElementById(
+      'unitEditor'
+    ).addEventListener(
+      'submit',
+      async event => {
+
+        event.preventDefault();
+
+        if (unitSaveBusy)
+          return;
+
+
+        const form =
+          event.currentTarget;
+
+
+        if (!form.reportValidity())
+          return;
+
+
+        unitSaveBusy = true;
+
+
+        document.getElementById(
+          'unitEditorFields'
+        ).disabled =
+          true;
+
+
+        const status =
+          document.getElementById(
+            'unitManagerStatus'
+          );
+
+
+        status.textContent =
+          'Saving…';
+
+
+        try {
+
+          if (!(await verifyAdmin()))
+            throw Error(
+              'Please sign in again.'
+            );
+
+
+          const get =
+            id =>
+              document
+                .getElementById(id)
+                .value
+                .trim();
+
+
+          const { data, error } =
+            await bookingClient.rpc(
+              'sg_save_unit',
+              {
+
+                p_id:
+                  editingUnitId,
+
+                p_create:
+                  creatingUnit,
+
+                p_name:
+                  get('unitName'),
+
+                p_price:
+                  get('unitPrice'),
+
+                p_deposit:
+                  get('unitDeposit'),
+
+                p_thumbnail:
+                  get('unitPhoto'),
+
+                p_order:
+                  get('unitOrder')
+              }
+            );
+
+
+          if (
+            error ||
+            data !== editingUnitId
+          )
+            throw Error(
+              error?.message ||
+              'Save could not be verified.'
+            );
+
+
+          creatingUnit = false;
+
+
+          document.getElementById(
+            'unitEditor'
+          ).hidden =
+            true;
+
+
+          await loadManagedUnits();
+
+
+          if (calendar)
+            await populateUnitDropdown();
+
+
+          status.textContent =
+            'Unit saved. New checkouts will use these amounts. Refresh the customer page to see the update.';
+
+
+        } catch (error) {
+
+          status.textContent =
+            'Could not confirm the save: ' +
+            error.message +
+            ' Reload units before adding another copy.';
+
+
+        } finally {
+
+          unitSaveBusy = false;
+
+
+          document.getElementById(
+            'unitEditorFields'
+          ).disabled =
+            false;
+
+
+          renderManagedUnits();
+        }
+      }
+    );
+
+
+    let savedUnitOrder = [];
+    let orderDirty = false;
+    let orderBusy = false;
+    let unitDrag = null;
+
+
+    function updateOrderControls() {
+
+      document.getElementById(
+        'saveUnitOrder'
+      ).disabled =
+        !orderDirty ||
+        orderBusy ||
+        unitSaveBusy;
+
+
+      document.getElementById(
+        'cancelUnitOrder'
+      ).disabled =
+        !orderDirty ||
+        orderBusy;
+
+
+      document.getElementById(
+        'saveUnitOrder'
+      ).hidden =
+        !orderDirty ||
+        orderBusy ||
+        !!unitDrag;
+
+
+      document.getElementById(
+        'cancelUnitOrder'
+      ).hidden =
+        !orderDirty ||
+        orderBusy ||
+        !!unitDrag;
+    }
+
+
+    function canReorder() {
+
+      if (
+        orderBusy ||
+        unitSaveBusy ||
+        !adminReady
+      )
+        return false;
+
+
+      if (
+        !document.getElementById(
+          'unitEditor'
+        ).hidden
+      ) {
+
+        document.getElementById(
+          'unitManagerStatus'
+        ).textContent =
+          'Save or cancel the unit edit before changing the order.';
+
+        return false;
+      }
+
+
       return true;
     }
-    function markUnitOrder(){
-      orderDirty=managedUnits.some((u,i)=>u.id!==savedUnitOrder[i]?.id);
-      document.getElementById('unitManagerStatus').textContent=orderDirty?'Release to save the new order.':'Order unchanged.';
+
+
+    function markUnitOrder() {
+
+      orderDirty =
+        managedUnits.some(
+          (u, i) =>
+            u.id !==
+            savedUnitOrder[i]?.id
+        );
+
+
+      document.getElementById(
+        'unitManagerStatus'
+      ).textContent =
+        orderDirty
+          ? 'Release to save the new order.'
+          : 'Order unchanged.';
+
+
       updateOrderControls();
     }
-    function moveManagedUnit(id,direction){
-      if(!canReorder())return;
-      const index=managedUnits.findIndex(u=>u.id===id),next=index+direction;
-      if(index<0||next<0||next>=managedUnits.length)return;
-      const [unit]=managedUnits.splice(index,1);managedUnits.splice(next,0,unit);
-      markUnitOrder();renderManagedUnits();
-      document.querySelector('[data-unit-id="'+id+'"] .unit-drag-handle')?.focus();
+
+
+    function moveManagedUnit(
+      id,
+      direction
+    ) {
+
+      if (!canReorder())
+        return;
+
+
+      const index =
+        managedUnits.findIndex(
+          u => u.id === id
+        );
+
+
+      const next =
+        index + direction;
+
+
+      if (
+        index < 0 ||
+        next < 0 ||
+        next >= managedUnits.length
+      )
+        return;
+
+
+      const [unit] =
+        managedUnits.splice(
+          index,
+          1
+        );
+
+
+      managedUnits.splice(
+        next,
+        0,
+        unit
+      );
+
+
+      markUnitOrder();
+
+      renderManagedUnits();
+
+
+      document.querySelector(
+        '[data-unit-id="' +
+        id +
+        '"] .unit-drag-handle'
+      )?.focus();
+
+
       saveManagedOrder();
     }
-    function renderManagedUnits(){
-      const list=document.getElementById('managedUnitList');list.replaceChildren();
-      managedUnits.forEach((unit,index)=>{
-        const row=document.createElement('div');row.className='managed-unit';row.dataset.unitId=unit.id;
-        const handle=document.createElement('button');handle.type='button';handle.className='unit-drag-handle';handle.textContent='☰';handle.setAttribute('aria-label','Drag '+unit.name+' to reorder');
-        handle.addEventListener('pointerdown',event=>{
-          if(event.button!==0||!canReorder())return;
-          event.preventDefault();unitDrag={id:unit.id,pointer:event.pointerId,original:managedUnits.slice()};handle.setPointerCapture(event.pointerId);row.classList.add('dragging');
-        });
-        handle.addEventListener('pointermove',event=>{
-          if(!unitDrag||unitDrag.pointer!==event.pointerId)return;
-          const target=document.elementFromPoint(event.clientX,event.clientY)?.closest('.managed-unit');
-          if(!target||target===row||target.parentElement!==list)return;
-          const rect=target.getBoundingClientRect(),next=event.clientY<rect.top+rect.height/2?target:target.nextSibling;
-          if(next===row||row.nextSibling===next)return;
-          list.insertBefore(row,next);handle.setPointerCapture(event.pointerId);
-          const ids=Array.from(list.children,n=>n.dataset.unitId);managedUnits=ids.map(id=>managedUnits.find(u=>u.id===id));markUnitOrder();
-        });
-        handle.addEventListener('pointerup',()=>{if(!unitDrag)return;unitDrag=null;renderManagedUnits();saveManagedOrder();});
-        handle.addEventListener('pointercancel',()=>{if(!unitDrag)return;managedUnits=unitDrag.original;unitDrag=null;markUnitOrder();renderManagedUnits();});
-        handle.addEventListener('keydown',event=>{if(event.key==='ArrowUp'||event.key==='ArrowDown'){event.preventDefault();moveManagedUnit(unit.id,event.key==='ArrowUp'?-1:1);}});
-        const label=document.createElement('span');label.textContent=unit.name+' · Rental '+unitMoney(unit.price)+' · Deposit '+unitMoney(unit.deposit_amount);
-        const controls=document.createElement('div');controls.className='unit-row-actions';
 
-        if(unit.is_hidden){const badge=document.createElement('small');badge.textContent='Hidden from customers';badge.style.display='block';label.append(badge);}
-        const edit=document.createElement('button');edit.type='button';edit.textContent='Edit';edit.disabled=orderDirty||orderBusy;edit.addEventListener('click',()=>editManagedUnit(unit.id));controls.append(edit);
-        handle.disabled=orderBusy;const photo=document.createElement('div');photo.className='unit-list-photo';
-        const fallback=document.createElement('span');fallback.textContent='No photo';photo.append(fallback);
-        if(unit.thumbnail_url){
-          const img=document.createElement('img');img.alt=unit.name;img.loading='lazy';img.draggable=false;
-          img.addEventListener('load',()=>{fallback.hidden=true;});
-          img.addEventListener('error',()=>{img.remove();fallback.hidden=false;});
-          img.src=unit.thumbnail_url;photo.append(img);
+
+    function renderManagedUnits() {
+
+      const list =
+        document.getElementById(
+          'managedUnitList'
+        );
+
+
+      list.replaceChildren();
+
+
+      managedUnits.forEach(
+        (unit, index) => {
+
+          const row =
+            document.createElement('div');
+
+          row.className =
+            'managed-unit';
+
+          row.dataset.unitId =
+            unit.id;
+
+
+          const handle =
+            document.createElement(
+              'button'
+            );
+
+          handle.type =
+            'button';
+
+          handle.className =
+            'unit-drag-handle';
+
+          handle.textContent =
+            '☰';
+
+          handle.setAttribute(
+            'aria-label',
+            'Drag ' +
+            unit.name +
+            ' to reorder'
+          );
+
+
+          handle.addEventListener(
+            'pointerdown',
+            event => {
+
+              if (
+                event.button !== 0 ||
+                !canReorder()
+              )
+                return;
+
+
+              event.preventDefault();
+
+
+              unitDrag = {
+
+                id:
+                  unit.id,
+
+                pointer:
+                  event.pointerId,
+
+                original:
+                  managedUnits.slice()
+
+              };
+
+
+              handle.setPointerCapture(
+                event.pointerId
+              );
+
+
+              row.classList.add(
+                'dragging'
+              );
+            }
+          );
+
+
+          handle.addEventListener(
+            'pointermove',
+            event => {
+
+              if (
+                !unitDrag ||
+                unitDrag.pointer !==
+                  event.pointerId
+              )
+                return;
+
+
+              const target =
+                document
+                  .elementFromPoint(
+                    event.clientX,
+                    event.clientY
+                  )
+                  ?.closest(
+                    '.managed-unit'
+                  );
+
+
+              if (
+                !target ||
+                target === row ||
+                target.parentElement !== list
+              )
+                return;
+
+
+              const rect =
+                target.getBoundingClientRect();
+
+
+              const next =
+                event.clientY <
+                rect.top +
+                  rect.height / 2
+                  ? target
+                  : target.nextSibling;
+
+
+              if (
+                next === row ||
+                row.nextSibling === next
+              )
+                return;
+
+
+              list.insertBefore(
+                row,
+                next
+              );
+
+
+              handle.setPointerCapture(
+                event.pointerId
+              );
+
+
+              const ids =
+                Array.from(
+                  list.children,
+                  n =>
+                    n.dataset.unitId
+                );
+
+
+              managedUnits =
+                ids.map(
+                  id =>
+                    managedUnits.find(
+                      u => u.id === id
+                    )
+                );
+
+
+              markUnitOrder();
+            }
+          );
+
+
+          handle.addEventListener(
+            'pointerup',
+            () => {
+
+              if (!unitDrag)
+                return;
+
+
+              unitDrag = null;
+
+              renderManagedUnits();
+
+              saveManagedOrder();
+            }
+          );
+
+
+          handle.addEventListener(
+            'pointercancel',
+            () => {
+
+              if (!unitDrag)
+                return;
+
+
+              managedUnits =
+                unitDrag.original;
+
+
+              unitDrag = null;
+
+
+              markUnitOrder();
+
+              renderManagedUnits();
+            }
+          );
+
+
+          handle.addEventListener(
+            'keydown',
+            event => {
+
+              if (
+                event.key === 'ArrowUp' ||
+                event.key === 'ArrowDown'
+              ) {
+
+                event.preventDefault();
+
+                moveManagedUnit(
+                  unit.id,
+                  event.key ===
+                    'ArrowUp'
+                    ? -1
+                    : 1
+                );
+              }
+            }
+          );
+
+
+          const label =
+            document.createElement(
+              'span'
+            );
+
+
+          label.textContent =
+            unit.name +
+            ' · Rental ' +
+            unitMoney(unit.price) +
+            ' · Deposit ' +
+            unitMoney(
+              unit.deposit_amount
+            );
+
+
+          const controls =
+            document.createElement(
+              'div'
+            );
+
+
+          controls.className =
+            'unit-row-actions';
+
+
+          if (unit.is_hidden) {
+
+            const badge =
+              document.createElement(
+                'small'
+              );
+
+            badge.textContent =
+              'Hidden from customers';
+
+            badge.style.display =
+              'block';
+
+            label.append(badge);
+          }
+
+
+          const edit =
+            document.createElement(
+              'button'
+            );
+
+          edit.type =
+            'button';
+
+          edit.textContent =
+            'Edit';
+
+          edit.disabled =
+            orderDirty ||
+            orderBusy;
+
+          edit.addEventListener(
+            'click',
+            () =>
+              editManagedUnit(
+                unit.id
+              )
+          );
+
+
+          controls.append(edit);
+
+
+          handle.disabled =
+            orderBusy;
+
+
+          const photo =
+            document.createElement(
+              'div'
+            );
+
+
+          photo.className =
+            'unit-list-photo';
+
+
+          const fallback =
+            document.createElement(
+              'span'
+            );
+
+
+          fallback.textContent =
+            'No photo';
+
+
+          photo.append(fallback);
+
+
+          if (unit.thumbnail_url) {
+
+            const img =
+              document.createElement(
+                'img'
+              );
+
+            img.alt =
+              unit.name;
+
+            img.loading =
+              'lazy';
+
+            img.draggable =
+              false;
+
+
+            img.addEventListener(
+              'load',
+              () => {
+
+                fallback.hidden =
+                  true;
+              }
+            );
+
+
+            img.addEventListener(
+              'error',
+              () => {
+
+                img.remove();
+
+                fallback.hidden =
+                  false;
+              }
+            );
+
+
+            img.src =
+              unit.thumbnail_url;
+
+
+            photo.append(img);
+          }
+
+
+          row.append(
+            handle,
+            photo,
+            label,
+            controls
+          );
+
+
+          list.append(row);
         }
-        row.append(handle,photo,label,controls);list.append(row);
-      });updateOrderControls();
-    }
-    function cancelManagedOrder(){
-      if(orderBusy)return;managedUnits=savedUnitOrder.map(u=>({...u}));orderDirty=false;renderManagedUnits();document.getElementById('unitManagerStatus').textContent='Order changes cancelled.';
-    }
-    async function saveManagedOrder(){
-      if(!orderDirty||!canReorder())return;
-      orderBusy=true;renderManagedUnits();const status=document.getElementById('unitManagerStatus');status.textContent='Saving order…';
-      try{
-        if(!(await verifyAdmin()))throw Error('Please sign in again.');
-        const {data,error}=await bookingClient.rpc('sg_reorder_units',{p_ids:managedUnits.map(u=>u.id),p_expected:savedUnitOrder.map(u=>({id:u.id,order:u.order??null}))});
-        if(error||data!==true)throw Error(error?.message||'Save could not be verified.');
-        managedUnits=managedUnits.map((u,i)=>({...u,order:String(i+1).padStart(6,'0')}));savedUnitOrder=managedUnits.map(u=>({...u}));orderDirty=false;
-        if(calendar)await populateUnitDropdown();
-        status.textContent='Order saved. Refresh the customer page to see the new order.';
-      }catch(error){
-        status.textContent=error.message.includes('ORDER_CHANGED')?'The unit list was changed elsewhere. Discard local changes and reload units before reordering.':'Could not confirm the save. Retry, or discard local changes and reload units to check the saved order.';
-      }finally{orderBusy=false;renderManagedUnits();}
+      );
+
+
+      updateOrderControls();
     }
 
-    async function deleteManagedUnit(){
-      if(unitSaveBusy||orderBusy||orderDirty||creatingUnit||!editingUnitId)return;
-      const unit=managedUnits.find(u=>u.id===editingUnitId);if(!unit)return;
-      if(!window.confirm('Permanently delete "'+unit.name+'"?\n\nThis removes the unit from the customer catalog and cannot be undone. Units with bookings or checkout holds cannot be deleted.'))return;
-      unitSaveBusy=true;document.getElementById('unitEditorFields').disabled=true;
-      const status=document.getElementById('unitManagerStatus');status.textContent='Deleting unit…';
-      try{
-        if(!(await verifyAdmin()))throw Error('ADMIN_REQUIRED');
-        const {data,error}=await bookingClient.rpc('sg_delete_unit',{p_id:unit.id,p_expected_name:unit.name});
-        if(error)throw Error(error.message);
-        if(typeof data!=='boolean')throw Error('UNVERIFIED_DELETE');
-        document.getElementById('unitEditor').hidden=true;editingUnitId=null;creatingUnit=false;
-        await loadManagedUnits();if(calendar)await populateUnitDropdown();
-        status.textContent=data?'Unit deleted. Refresh the customer page to see the change.':'This unit was already removed. The list has been refreshed.';
-      }catch(error){
-        const messages={UNIT_HAS_BOOKINGS:'This unit has bookings and cannot be deleted. Its reservations have been kept.',UNIT_HAS_CHECKOUT_HOLD:'This unit has a checkout hold and cannot be deleted yet. Resolve that checkout first.',UNIT_CHANGED:'This unit changed since it was loaded. Reload units and review it before deleting.',ADMIN_REQUIRED:'Please sign in with an authorized admin account.'};
-        status.textContent=messages[error.message]||'Could not confirm deletion. Reload units to check its current status before trying again.';
-      }finally{unitSaveBusy=false;document.getElementById('unitEditorFields').disabled=false;renderManagedUnits();}
+
+    function cancelManagedOrder() {
+
+      if (orderBusy)
+        return;
+
+
+      managedUnits =
+        savedUnitOrder.map(
+          u => ({ ...u })
+        );
+
+
+      orderDirty = false;
+
+
+      renderManagedUnits();
+
+
+      document.getElementById(
+        'unitManagerStatus'
+      ).textContent =
+        'Order changes cancelled.';
     }
 
-    async function setManagedUnitHidden(id){
-      if(unitSaveBusy||orderBusy||orderDirty||unitDrag)return;
-      const unit=managedUnits.find(u=>u.id===id);if(!unit)return;
-      const hidden=unit.is_hidden!==true;
-      unitSaveBusy=true;document.getElementById('unitEditorFields').disabled=true;renderManagedUnits();
-      const status=document.getElementById('unitManagerStatus');status.textContent='Saving customer visibility…';
-      try{
-        if(!(await verifyAdmin()))throw Error('ADMIN_REQUIRED');
-        const {data,error}=await bookingClient.rpc('sg_set_unit_hidden',{p_id:id,p_hidden:hidden});
-        if(error||data!==hidden)throw Error(error?.message||'Save could not be verified.');
-        unit.is_hidden=hidden;savedUnitOrder=savedUnitOrder.map(u=>u.id===id?{...u,is_hidden:hidden}:u);
-        document.getElementById('unitVisibilityBtn').textContent=hidden?'Unhide':'Hide';
-        status.textContent=unit.name+(hidden?' is hidden from the customer page. Existing bookings and payments are unchanged.':' is shown on the customer page again.');
-      }catch(_){status.textContent='Could not confirm this change. Reload units to check the saved visibility before trying again.';}
-      finally{unitSaveBusy=false;document.getElementById('unitEditorFields').disabled=false;renderManagedUnits();renderManagedUnits();}
-    }
 
-    let bookingBalanceRequest=0;
-    async function loadBookingBalance(bookingId){
-      const request=++bookingBalanceRequest,panel=document.getElementById('bookingPaymentSummary');
-      panel.className='';panel.textContent='';panel.hidden=!bookingId;if(!bookingId)return;
-      panel.textContent='Loading payment status…';
-      panel.title='Rental balance based on checkout payment. Travel fees and later payments collected separately are not included.';
-      try{
-        const {data,error}=await bookingClient.rpc('sg_booking_payment_summary',{p_booking_id:bookingId});
-        if(request!==bookingBalanceRequest||currentEditId!==bookingId)return;
-        if(error)throw error;
-        if(!data){panel.textContent='Payment status unavailable';return;}
-        if(data.unit_changed){panel.textContent='Unit changed — verify balance';return;}
-        const remaining=Number(data.remaining_cents);
-        if(!Number.isFinite(remaining)){panel.textContent='Payment status unavailable';return;}
-        panel.className=remaining>0?'payment-due':'payment-paid';
-        panel.textContent=remaining>0?'Remaining balance: $'+(remaining/100).toFixed(2):remaining===0?'✓ Paid in full':'Credit balance: $'+(Math.abs(remaining)/100).toFixed(2);
-      }catch(_){if(request===bookingBalanceRequest&&currentEditId===bookingId)panel.textContent='Payment status unavailable';}
-    }
+    async function saveManagedOrder() {
 
-    async function phoneReminderRequest(action,extra={}){
-      const {data,error}=await bookingClient.functions.invoke('sg-phone-reminders',{body:{action,...extra}});
-      if(error){
-        let detail='',code='',status=error.context?.status;
-        try{const response=await error.context.json();detail=response.error||response.message||'';code=response.code||'';}catch{}
-        if(typeof detail!=='string')detail=JSON.stringify(detail);
-        let message=detail||error.message||'Network request failed';
-        if(status===401)message+=' — Log out, sign back in, then retry.';
-        if(status===404)message+=' — Check that sg-phone-reminders is deployed in the booking Supabase project.';
-        if(status===503)message+=' — Open sg-phone-reminders → Logs in Supabase and check its startup error.';
-        if(!status)message+=' — Check your internet connection and the sg-phone-reminders deployment.';
-        throw Error('Notification setup ('+action+(status?', HTTP '+status:'')+(code?', '+code:'')+'): '+message);
+      if (
+        !orderDirty ||
+        !canReorder()
+      )
+        return;
+
+
+      orderBusy = true;
+
+      renderManagedUnits();
+
+
+      const status =
+        document.getElementById(
+          'unitManagerStatus'
+        );
+
+
+      status.textContent =
+        'Saving order…';
+
+
+      try {
+
+        if (!(await verifyAdmin()))
+          throw Error(
+            'Please sign in again.'
+          );
+
+
+        const { data, error } =
+          await bookingClient.rpc(
+            'sg_reorder_units',
+            {
+
+              p_ids:
+                managedUnits.map(
+                  u => u.id
+                ),
+
+              p_expected:
+                savedUnitOrder.map(
+                  u => ({
+                    id:
+                      u.id,
+
+                    order:
+                      u.order ?? null
+                  })
+                )
+            }
+          );
+
+
+        if (
+          error ||
+          data !== true
+        )
+          throw Error(
+            error?.message ||
+            'Save could not be verified.'
+          );
+
+
+        managedUnits =
+          managedUnits.map(
+            (u, i) => ({
+              ...u,
+              order:
+                String(i + 1)
+                  .padStart(
+                    6,
+                    '0'
+                  )
+            })
+          );
+
+
+        savedUnitOrder =
+          managedUnits.map(
+            u => ({ ...u })
+          );
+
+
+        orderDirty =
+          false;
+
+
+        if (calendar)
+          await populateUnitDropdown();
+
+
+        status.textContent =
+          'Order saved. Refresh the customer page to see the new order.';
+
+
+      } catch (error) {
+
+        status.textContent =
+          error.message.includes(
+            'ORDER_CHANGED'
+          )
+            ? 'The unit list was changed elsewhere. Discard local changes and reload units before reordering.'
+            : 'Could not confirm the save. Retry, or discard local changes and reload units to check the saved order.';
+
+
+      } finally {
+
+        orderBusy = false;
+
+        renderManagedUnits();
       }
-      if(data?.error)throw Error(data.error);return data;
     }
-    async function phoneReminders(action){
-      const status=document.getElementById('phoneReminderStatus');
-      const buttons=document.querySelectorAll('#phoneReminders button');buttons.forEach(b=>b.disabled=true);
-      try{
-        if(!adminReady)throw Error('Please sign in first.');
-        if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window))throw Error('Open this dashboard in Chrome on your Android phone.');
-        if(action==='subscribe'){
-          const permission=await Notification.requestPermission();
-          if(permission!=='granted')throw Error('Allow notifications for this website in Chrome, then try again.');
-        }
-        status.textContent='Connecting…';
-        const registration=await navigator.serviceWorker.register('./sg-reminders-sw.js');
-        if(!registration.active)await new Promise((resolve,reject)=>{
-          const worker=registration.installing||registration.waiting;if(!worker)return reject(Error('Reload the page and try again.'));
-          const timer=setTimeout(()=>reject(Error('Reload the page and try again.')),15000);
-          worker.addEventListener('statechange',()=>{if(worker.state==='activated'){clearTimeout(timer);resolve();}else if(worker.state==='redundant'){clearTimeout(timer);reject(Error('Notification setup failed.'));}});
-        });
-        let subscription=await registration.pushManager.getSubscription();
-        if(action==='subscribe'){
-          const config=await phoneReminderRequest('config');
-          const raw=atob(config.publicKey.replace(/-/g,'+').replace(/_/g,'/'));const key=Uint8Array.from(raw,c=>c.charCodeAt(0));
-          if(!subscription)subscription=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:key});
-          await phoneReminderRequest('subscribe',{subscription:subscription.toJSON()});
-          status.textContent='Enabled on this phone: 1 PM Mountain Time. Tap Send test notification to check delivery.';
-        }else if(action==='unsubscribe'){
-          if(subscription){await phoneReminderRequest('unsubscribe',{endpoint:subscription.endpoint});await subscription.unsubscribe();}
-          status.textContent='Reminders are off on this phone.';
-        }else{
-          if(!subscription)throw Error('Enable on this phone first.');
-          await phoneReminderRequest('test',{endpoint:subscription.endpoint});status.textContent='Test accepted for delivery. Check your phone’s notifications.';
-        }
-      }catch(error){status.textContent=error.message;}finally{buttons.forEach(b=>b.disabled=false);}
+
+
+    async function deleteManagedUnit() {
+
+      if (
+        unitSaveBusy ||
+        orderBusy ||
+        orderDirty ||
+        creatingUnit ||
+        !editingUnitId
+      )
+        return;
+
+
+      const unit =
+        managedUnits.find(
+          u =>
+            u.id ===
+            editingUnitId
+        );
+
+
+      if (!unit)
+        return;
+
+
+      if (
+        !window.confirm(
+          'Permanently delete "' +
+          unit.name +
+          '"?\n\nThis removes the unit from the customer catalog and cannot be undone. Units with bookings or checkout holds cannot be deleted.'
+        )
+      )
+        return;
+
+
+      unitSaveBusy =
+        true;
+
+
+      document.getElementById(
+        'unitEditorFields'
+      ).disabled =
+        true;
+
+
+      const status =
+        document.getElementById(
+          'unitManagerStatus'
+        );
+
+
+      status.textContent =
+        'Deleting unit…';
+
+
+      try {
+
+        if (!(await verifyAdmin()))
+          throw Error(
+            'ADMIN_REQUIRED'
+          );
+
+
+        const { data, error } =
+          await bookingClient.rpc(
+            'sg_delete_unit',
+            {
+
+              p_id:
+                unit.id,
+
+              p_expected_name:
+                unit.name
+            }
+          );
+
+
+        if (error)
+          throw Error(
+            error.message
+          );
+
+
+        if (
+          typeof data !==
+          'boolean'
+        )
+          throw Error(
+            'UNVERIFIED_DELETE'
+          );
+
+
+        document.getElementById(
+          'unitEditor'
+        ).hidden =
+          true;
+
+
+        editingUnitId =
+          null;
+
+        creatingUnit =
+          false;
+
+
+        await loadManagedUnits();
+
+
+        if (calendar)
+          await populateUnitDropdown();
+
+
+        status.textContent =
+          data
+            ? 'Unit deleted. Refresh the customer page to see the change.'
+            : 'This unit was already removed. The list has been refreshed.';
+
+
+      } catch (error) {
+
+        const messages = {
+
+          UNIT_HAS_BOOKINGS:
+            'This unit has bookings and cannot be deleted. Its reservations have been kept.',
+
+          UNIT_HAS_CHECKOUT_HOLD:
+            'This unit has a checkout hold and cannot be deleted yet. Resolve that checkout first.',
+
+          UNIT_CHANGED:
+            'This unit changed since it was loaded. Reload units and review it before deleting.',
+
+          ADMIN_REQUIRED:
+            'Please sign in with an authorized admin account.'
+
+        };
+
+
+        status.textContent =
+          messages[error.message] ||
+          'Could not confirm deletion. Reload units to check its current status before trying again.';
+
+
+      } finally {
+
+        unitSaveBusy =
+          false;
+
+
+        document.getElementById(
+          'unitEditorFields'
+        ).disabled =
+          false;
+
+
+        renderManagedUnits();
+      }
     }
+
+
+    async function setManagedUnitHidden(id) {
+
+      if (
+        unitSaveBusy ||
+        orderBusy ||
+        orderDirty ||
+        unitDrag
+      )
+        return;
+
+
+      const unit =
+        managedUnits.find(
+          u => u.id === id
+        );
+
+
+      if (!unit)
+        return;
+
+
+      const hidden =
+        unit.is_hidden !== true;
+
+
+      unitSaveBusy =
+        true;
+
+
+      document.getElementById(
+        'unitEditorFields'
+      ).disabled =
+        true;
+
+
+      renderManagedUnits();
+
+
+      const status =
+        document.getElementById(
+          'unitManagerStatus'
+        );
+
+
+      status.textContent =
+        'Saving customer visibility…';
+
+
+      try {
+
+        if (!(await verifyAdmin()))
+          throw Error(
+            'ADMIN_REQUIRED'
+          );
+
+
+        const { data, error } =
+          await bookingClient.rpc(
+            'sg_set_unit_hidden',
+            {
+              p_id:
+                id,
+
+              p_hidden:
+                hidden
+            }
+          );
+
+
+        if (
+          error ||
+          data !== hidden
+        )
+          throw Error(
+            error?.message ||
+            'Save could not be verified.'
+          );
+
+
+        unit.is_hidden =
+          hidden;
+
+
+        savedUnitOrder =
+          savedUnitOrder.map(
+            u =>
+              u.id === id
+                ? {
+                    ...u,
+                    is_hidden:
+                      hidden
+                  }
+                : u
+          );
+
+
+        document.getElementById(
+          'unitVisibilityBtn'
+        ).textContent =
+          hidden
+            ? 'Unhide'
+            : 'Hide';
+
+
+        status.textContent =
+          unit.name +
+          (
+            hidden
+              ? ' is hidden from the customer page. Existing bookings and payments are unchanged.'
+              : ' is shown on the customer page again.'
+          );
+
+
+      } catch (_) {
+
+        status.textContent =
+          'Could not confirm this change. Reload units to check the saved visibility before trying again.';
+
+
+      } finally {
+
+        unitSaveBusy =
+          false;
+
+
+        document.getElementById(
+          'unitEditorFields'
+        ).disabled =
+          false;
+
+
+        renderManagedUnits();
+      }
+    }
+
+
+    /* =========================================================
+       DELIVERY AREA MANAGER
+       NEW
+    ========================================================= */
+
+    let deliveryAreas = [];
+
+    let editingDeliveryAreaId =
+      null;
+
+    let deliveryAreaBusy =
+      false;
+
+    let deliveryAreasLoaded =
+      false;
+
+
+    function deliveryMoney(value) {
+
+      const amount =
+        Number(value || 0);
+
+      return amount === 0
+        ? 'FREE'
+        : '$' + amount.toFixed(2);
+    }
+
+
+    async function deliveryAreaSectionToggled() {
+
+      const section =
+        document.getElementById(
+          'deliveryAreaManager'
+        );
+
+
+      if (
+        section.open &&
+        !deliveryAreasLoaded
+      ) {
+
+        await loadDeliveryAreas();
+      }
+    }
+
+
+    async function loadDeliveryAreas() {
+
+      if (deliveryAreaBusy)
+        return;
+
+
+      if (!(await verifyAdmin()))
+        return;
+
+
+      const status =
+        document.getElementById(
+          'deliveryAreaStatus'
+        );
+
+
+      status.textContent =
+        'Loading delivery areas…';
+
+
+      try {
+
+        const { data, error } =
+          await bookingClient.rpc(
+            'sg_admin_delivery_areas'
+          );
+
+
+        if (error)
+          throw error;
+
+
+        deliveryAreas =
+          Array.isArray(data)
+            ? data
+            : [];
+
+
+        deliveryAreas.sort(
+          (a, b) =>
+            String(a.city)
+              .localeCompare(
+                String(b.city)
+              )
+        );
+
+
+        deliveryAreasLoaded =
+          true;
+
+
+        renderDeliveryAreas();
+
+
+        status.textContent =
+          deliveryAreas.length
+            ? deliveryAreas.length +
+              ' delivery area' +
+              (
+                deliveryAreas.length === 1
+                  ? ''
+                  : 's'
+              ) +
+              ' loaded.'
+            : 'No delivery areas yet. Add your first city.';
+
+
+      } catch (error) {
+
+        console.error(error);
+
+        status.textContent =
+          'Could not load delivery areas: ' +
+          (
+            error?.message ||
+            'Unknown error'
+          );
+      }
+    }
+
+
+    function renderDeliveryAreas() {
+
+      const list =
+        document.getElementById(
+          'deliveryAreaList'
+        );
+
+
+      list.replaceChildren();
+
+
+      if (!deliveryAreas.length) {
+
+        const empty =
+          document.createElement('p');
+
+        empty.textContent =
+          'No delivery areas have been added yet.';
+
+        list.appendChild(empty);
+
+        return;
+      }
+
+
+      deliveryAreas.forEach(
+        area => {
+
+          const row =
+            document.createElement(
+              'div'
+            );
+
+
+          row.className =
+            'delivery-area-row';
+
+
+          const info =
+            document.createElement(
+              'div'
+            );
+
+
+          info.className =
+            'delivery-area-info';
+
+
+          const city =
+            document.createElement(
+              'div'
+            );
+
+
+          city.className =
+            'delivery-area-city';
+
+
+          city.textContent =
+            area.city;
+
+
+          const fee =
+            document.createElement(
+              'div'
+            );
+
+
+          fee.className =
+            'delivery-area-fee';
+
+
+          const amount =
+            Number(
+              area.delivery_fee || 0
+            );
+
+
+          if (amount === 0) {
+
+            fee.textContent =
+              'Delivery: FREE';
+
+            fee.classList.add(
+              'delivery-free'
+            );
+
+          } else {
+
+            fee.textContent =
+              'Delivery: $' +
+              amount.toFixed(2);
+          }
+
+
+          info.append(
+            city,
+            fee
+          );
+
+
+          if (!area.active) {
+
+            const inactive =
+              document.createElement(
+                'div'
+              );
+
+
+            inactive.className =
+              'delivery-area-inactive';
+
+
+            inactive.textContent =
+              'Inactive — hidden from customers';
+
+
+            info.appendChild(
+              inactive
+            );
+          }
+
+
+          const actions =
+            document.createElement(
+              'div'
+            );
+
+
+          actions.className =
+            'delivery-area-actions';
+
+
+          const edit =
+            document.createElement(
+              'button'
+            );
+
+
+          edit.type =
+            'button';
+
+
+          edit.textContent =
+            'Edit';
+
+
+          edit.disabled =
+            deliveryAreaBusy;
+
+
+          edit.addEventListener(
+            'click',
+            () =>
+              editDeliveryArea(
+                area.id
+              )
+          );
+
+
+          actions.appendChild(
+            edit
+          );
+
+
+          const toggle =
+            document.createElement(
+              'button'
+            );
+
+
+          toggle.type =
+            'button';
+
+
+          toggle.textContent =
+            area.active
+              ? 'Deactivate'
+              : 'Activate';
+
+
+          toggle.disabled =
+            deliveryAreaBusy;
+
+
+          toggle.addEventListener(
+            'click',
+            () =>
+              setDeliveryAreaActive(
+                area.id,
+                !area.active
+              )
+          );
+
+
+          actions.appendChild(
+            toggle
+          );
+
+
+          row.append(
+            info,
+            actions
+          );
+
+
+          list.appendChild(
+            row
+          );
+        }
+      );
+    }
+
+
+    function editDeliveryArea(id = null) {
+
+      if (
+        !adminReady ||
+        deliveryAreaBusy
+      )
+        return;
+
+
+      const area =
+        id === null
+          ? null
+          : deliveryAreas.find(
+              item =>
+                Number(item.id) ===
+                Number(id)
+            );
+
+
+      if (
+        id !== null &&
+        !area
+      )
+        return;
+
+
+      editingDeliveryAreaId =
+        area
+          ? area.id
+          : null;
+
+
+      document.getElementById(
+        'deliveryAreaEditorTitle'
+      ).textContent =
+        area
+          ? 'Edit delivery area'
+          : 'Add delivery area';
+
+
+      document.getElementById(
+        'deliveryCity'
+      ).value =
+        area?.city || '';
+
+
+      document.getElementById(
+        'deliveryFee'
+      ).value =
+        area
+          ? Number(
+              area.delivery_fee
+            ).toFixed(2)
+          : '0.00';
+
+
+      document.getElementById(
+        'deliveryActive'
+      ).checked =
+        area
+          ? area.active === true
+          : true;
+
+
+      document.getElementById(
+        'deleteDeliveryAreaBtn'
+      ).hidden =
+        !area;
+
+
+      document.getElementById(
+        'deliveryAreaEditor'
+      ).hidden =
+        false;
+
+
+      document.getElementById(
+        'deliveryCity'
+      ).focus();
+    }
+
+
+    function cancelDeliveryAreaEdit() {
+
+      if (deliveryAreaBusy)
+        return;
+
+
+      editingDeliveryAreaId =
+        null;
+
+
+      document.getElementById(
+        'deliveryAreaEditor'
+      ).hidden =
+        true;
+
+
+      document.getElementById(
+        'deliveryAreaEditor'
+      ).reset();
+
+
+      document.getElementById(
+        'deliveryActive'
+      ).checked =
+        true;
+    }
+
+
+    document.getElementById(
+      'deliveryAreaEditor'
+    ).addEventListener(
+      'submit',
+      async event => {
+
+        event.preventDefault();
+
+
+        if (deliveryAreaBusy)
+          return;
+
+
+        const form =
+          event.currentTarget;
+
+
+        if (!form.reportValidity())
+          return;
+
+
+        const city =
+          document
+            .getElementById(
+              'deliveryCity'
+            )
+            .value
+            .trim();
+
+
+        const fee =
+          Number(
+            document.getElementById(
+              'deliveryFee'
+            ).value
+          );
+
+
+        const active =
+          document.getElementById(
+            'deliveryActive'
+          ).checked;
+
+
+        if (!city) {
+
+          document.getElementById(
+            'deliveryAreaStatus'
+          ).textContent =
+            'Enter a city name.';
+
+          return;
+        }
+
+
+        if (
+          !Number.isFinite(fee) ||
+          fee < 0
+        ) {
+
+          document.getElementById(
+            'deliveryAreaStatus'
+          ).textContent =
+            'Enter a valid delivery fee.';
+
+          return;
+        }
+
+
+        deliveryAreaBusy =
+          true;
+
+
+        document.getElementById(
+          'deliveryAreaFields'
+        ).disabled =
+          true;
+
+
+        renderDeliveryAreas();
+
+
+        const status =
+          document.getElementById(
+            'deliveryAreaStatus'
+          );
+
+
+        status.textContent =
+          'Saving ' +
+          city +
+          '…';
+
+
+        try {
+
+          if (!(await verifyAdmin()))
+            throw Error(
+              'ADMIN_REQUIRED'
+            );
+
+
+          const { data, error } =
+            await bookingClient.rpc(
+              'sg_save_delivery_area',
+              {
+
+                p_id:
+                  editingDeliveryAreaId,
+
+                p_city:
+                  city,
+
+                p_delivery_fee:
+                  fee,
+
+                p_active:
+                  active
+
+              }
+            );
+
+
+          if (error)
+            throw error;
+
+
+          if (
+            data === null ||
+            data === undefined
+          )
+            throw Error(
+              'Save could not be verified.'
+            );
+
+
+          editingDeliveryAreaId =
+            null;
+
+
+          document.getElementById(
+            'deliveryAreaEditor'
+          ).hidden =
+            true;
+
+
+          document.getElementById(
+            'deliveryAreaEditor'
+          ).reset();
+
+
+          document.getElementById(
+            'deliveryActive'
+          ).checked =
+            true;
+
+
+          deliveryAreasLoaded =
+            false;
+
+
+          await loadDeliveryAreas();
+
+
+          status.textContent =
+            city +
+            ' saved. Delivery fee: ' +
+            deliveryMoney(fee) +
+            '.';
+
+
+        } catch (error) {
+
+          console.error(error);
+
+
+          let message =
+            error?.message ||
+            'Save failed.';
+
+
+          if (
+            message.includes(
+              'delivery_areas_city_unique'
+            ) ||
+            message.includes(
+              'duplicate key'
+            )
+          ) {
+
+            message =
+              'That city already exists. Edit the existing city instead.';
+          }
+
+
+          if (
+            message.includes(
+              'ADMIN_REQUIRED'
+            )
+          ) {
+
+            message =
+              'Please sign in with an authorized admin account.';
+          }
+
+
+          status.textContent =
+            'Could not save delivery area: ' +
+            message;
+
+
+        } finally {
+
+          deliveryAreaBusy =
+            false;
+
+
+          document.getElementById(
+            'deliveryAreaFields'
+          ).disabled =
+            false;
+
+
+          renderDeliveryAreas();
+        }
+      }
+    );
+
+
+    async function setDeliveryAreaActive(
+      id,
+      active
+    ) {
+
+      if (deliveryAreaBusy)
+        return;
+
+
+      const area =
+        deliveryAreas.find(
+          item =>
+            Number(item.id) ===
+            Number(id)
+        );
+
+
+      if (!area)
+        return;
+
+
+      deliveryAreaBusy =
+        true;
+
+
+      renderDeliveryAreas();
+
+
+      const status =
+        document.getElementById(
+          'deliveryAreaStatus'
+        );
+
+
+      status.textContent =
+        active
+          ? 'Activating ' +
+            area.city +
+            '…'
+          : 'Deactivating ' +
+            area.city +
+            '…';
+
+
+      try {
+
+        if (!(await verifyAdmin()))
+          throw Error(
+            'ADMIN_REQUIRED'
+          );
+
+
+        const { data, error } =
+          await bookingClient.rpc(
+            'sg_save_delivery_area',
+            {
+
+              p_id:
+                area.id,
+
+              p_city:
+                area.city,
+
+              p_delivery_fee:
+                Number(
+                  area.delivery_fee
+                ),
+
+              p_active:
+                active
+
+            }
+          );
+
+
+        if (error)
+          throw error;
+
+
+        if (
+          Number(data) !==
+          Number(area.id)
+        )
+          throw Error(
+            'Save could not be verified.'
+          );
+
+
+        area.active =
+          active;
+
+
+        status.textContent =
+          area.city +
+          (
+            active
+              ? ' is active.'
+              : ' is inactive and will be hidden from future customer reservations.'
+          );
+
+
+      } catch (error) {
+
+        status.textContent =
+          'Could not change ' +
+          area.city +
+          ': ' +
+          (
+            error?.message ||
+            'Unknown error'
+          );
+
+
+        deliveryAreasLoaded =
+          false;
+
+
+      } finally {
+
+        deliveryAreaBusy =
+          false;
+
+        renderDeliveryAreas();
+      }
+    }
+
+
+    async function deleteDeliveryArea() {
+
+      if (
+        deliveryAreaBusy ||
+        editingDeliveryAreaId === null
+      )
+        return;
+
+
+      const area =
+        deliveryAreas.find(
+          item =>
+            Number(item.id) ===
+            Number(
+              editingDeliveryAreaId
+            )
+        );
+
+
+      if (!area)
+        return;
+
+
+      if (
+        !window.confirm(
+          'Permanently delete "' +
+          area.city +
+          '" from the delivery area list?\n\nIf you may deliver there again later, use Inactive instead.'
+        )
+      )
+        return;
+
+
+      deliveryAreaBusy =
+        true;
+
+
+      document.getElementById(
+        'deliveryAreaFields'
+      ).disabled =
+        true;
+
+
+      const status =
+        document.getElementById(
+          'deliveryAreaStatus'
+        );
+
+
+      status.textContent =
+        'Deleting ' +
+        area.city +
+        '…';
+
+
+      try {
+
+        if (!(await verifyAdmin()))
+          throw Error(
+            'ADMIN_REQUIRED'
+          );
+
+
+        const { data, error } =
+          await bookingClient.rpc(
+            'sg_delete_delivery_area',
+            {
+              p_id:
+                area.id
+            }
+          );
+
+
+        if (error)
+          throw error;
+
+
+        if (data !== true)
+          throw Error(
+            'The city was not found. Reloading the list.'
+          );
+
+
+        editingDeliveryAreaId =
+          null;
+
+
+        document.getElementById(
+          'deliveryAreaEditor'
+        ).hidden =
+          true;
+
+
+        document.getElementById(
+          'deliveryAreaEditor'
+        ).reset();
+
+
+        document.getElementById(
+          'deliveryActive'
+        ).checked =
+          true;
+
+
+        deliveryAreasLoaded =
+          false;
+
+
+        await loadDeliveryAreas();
+
+
+        status.textContent =
+          area.city +
+          ' deleted.';
+
+
+      } catch (error) {
+
+        status.textContent =
+          'Could not delete ' +
+          area.city +
+          ': ' +
+          (
+            error?.message ||
+            'Unknown error'
+          );
+
+
+      } finally {
+
+        deliveryAreaBusy =
+          false;
+
+
+        document.getElementById(
+          'deliveryAreaFields'
+        ).disabled =
+          false;
+
+
+        renderDeliveryAreas();
+      }
+    }
+
+
+    /* =========================================================
+       BOOKING PAYMENT BALANCE
+    ========================================================= */
+
+    let bookingBalanceRequest =
+      0;
+
+
+    async function loadBookingBalance(
+      bookingId
+    ) {
+
+      const request =
+        ++bookingBalanceRequest;
+
+
+      const panel =
+        document.getElementById(
+          'bookingPaymentSummary'
+        );
+
+
+      panel.className =
+        '';
+
+      panel.textContent =
+        '';
+
+      panel.hidden =
+        !bookingId;
+
+
+      if (!bookingId)
+        return;
+
+
+      panel.textContent =
+        'Loading payment status…';
+
+
+      panel.title =
+        'Rental balance based on checkout payment. Travel fees and later payments collected separately are not included.';
+
+
+      try {
+
+        const { data, error } =
+          await bookingClient.rpc(
+            'sg_booking_payment_summary',
+            {
+              p_booking_id:
+                bookingId
+            }
+          );
+
+
+        if (
+          request !==
+            bookingBalanceRequest ||
+          currentEditId !==
+            bookingId
+        )
+          return;
+
+
+        if (error)
+          throw error;
+
+
+        if (!data) {
+
+          panel.textContent =
+            'Payment status unavailable';
+
+          return;
+        }
+
+
+        if (data.unit_changed) {
+
+          panel.textContent =
+            'Unit changed — verify balance';
+
+          return;
+        }
+
+
+        const remaining =
+          Number(
+            data.remaining_cents
+          );
+
+
+        if (
+          !Number.isFinite(
+            remaining
+          )
+        ) {
+
+          panel.textContent =
+            'Payment status unavailable';
+
+          return;
+        }
+
+
+        panel.className =
+          remaining > 0
+            ? 'payment-due'
+            : 'payment-paid';
+
+
+        panel.textContent =
+          remaining > 0
+            ? 'Remaining balance: $' +
+              (
+                remaining / 100
+              ).toFixed(2)
+
+            : remaining === 0
+              ? '✓ Paid in full'
+
+              : 'Credit balance: $' +
+                (
+                  Math.abs(
+                    remaining
+                  ) / 100
+                ).toFixed(2);
+
+
+      } catch (_) {
+
+        if (
+          request ===
+            bookingBalanceRequest &&
+          currentEditId ===
+            bookingId
+        ) {
+
+          panel.textContent =
+            'Payment status unavailable';
+        }
+      }
+    }
+
+
+    /* =========================================================
+       PHONE REMINDERS
+    ========================================================= */
+
+    async function phoneReminderRequest(
+      action,
+      extra = {}
+    ) {
+
+      const { data, error } =
+        await bookingClient.functions.invoke(
+          'sg-phone-reminders',
+          {
+            body: {
+              action,
+              ...extra
+            }
+          }
+        );
+
+
+      if (error) {
+
+        let detail = '';
+        let code = '';
+        let status =
+          error.context?.status;
+
+
+        try {
+
+          const response =
+            await error.context.json();
+
+          detail =
+            response.error ||
+            response.message ||
+            '';
+
+          code =
+            response.code ||
+            '';
+
+        } catch {}
+
+
+        if (
+          typeof detail !==
+          'string'
+        )
+          detail =
+            JSON.stringify(
+              detail
+            );
+
+
+        let message =
+          detail ||
+          error.message ||
+          'Network request failed';
+
+
+        if (status === 401)
+          message +=
+            ' — Log out, sign back in, then retry.';
+
+
+        if (status === 404)
+          message +=
+            ' — Check that sg-phone-reminders is deployed in the booking Supabase project.';
+
+
+        if (status === 503)
+          message +=
+            ' — Open sg-phone-reminders → Logs in Supabase and check its startup error.';
+
+
+        if (!status)
+          message +=
+            ' — Check your internet connection and the sg-phone-reminders deployment.';
+
+
+        throw Error(
+          'Notification setup (' +
+          action +
+          (
+            status
+              ? ', HTTP ' + status
+              : ''
+          ) +
+          (
+            code
+              ? ', ' + code
+              : ''
+          ) +
+          '): ' +
+          message
+        );
+      }
+
+
+      if (data?.error)
+        throw Error(
+          data.error
+        );
+
+
+      return data;
+    }
+
+
+    async function phoneReminders(
+      action
+    ) {
+
+      const status =
+        document.getElementById(
+          'phoneReminderStatus'
+        );
+
+
+      const buttons =
+        document.querySelectorAll(
+          '#phoneReminders button'
+        );
+
+
+      buttons.forEach(
+        b =>
+          b.disabled = true
+      );
+
+
+      try {
+
+        if (!adminReady)
+          throw Error(
+            'Please sign in first.'
+          );
+
+
+        if (
+          !(
+            'serviceWorker'
+            in navigator
+          ) ||
+          !(
+            'PushManager'
+            in window
+          ) ||
+          !(
+            'Notification'
+            in window
+          )
+        )
+          throw Error(
+            'Open this dashboard in Chrome on your Android phone.'
+          );
+
+
+        if (
+          action ===
+          'subscribe'
+        ) {
+
+          const permission =
+            await Notification
+              .requestPermission();
+
+
+          if (
+            permission !==
+            'granted'
+          )
+            throw Error(
+              'Allow notifications for this website in Chrome, then try again.'
+            );
+        }
+
+
+        status.textContent =
+          'Connecting…';
+
+
+        const registration =
+          await navigator
+            .serviceWorker
+            .register(
+              './sg-reminders-sw.js'
+            );
+
+
+        if (
+          !registration.active
+        )
+          await new Promise(
+            (
+              resolve,
+              reject
+            ) => {
+
+              const worker =
+                registration.installing ||
+                registration.waiting;
+
+
+              if (!worker)
+                return reject(
+                  Error(
+                    'Reload the page and try again.'
+                  )
+                );
+
+
+              const timer =
+                setTimeout(
+                  () =>
+                    reject(
+                      Error(
+                        'Reload the page and try again.'
+                      )
+                    ),
+                  15000
+                );
+
+
+              worker.addEventListener(
+                'statechange',
+                () => {
+
+                  if (
+                    worker.state ===
+                    'activated'
+                  ) {
+
+                    clearTimeout(
+                      timer
+                    );
+
+                    resolve();
+
+                  } else if (
+                    worker.state ===
+                    'redundant'
+                  ) {
+
+                    clearTimeout(
+                      timer
+                    );
+
+                    reject(
+                      Error(
+                        'Notification setup failed.'
+                      )
+                    );
+                  }
+                }
+              );
+            }
+          );
+
+
+        let subscription =
+          await registration
+            .pushManager
+            .getSubscription();
+
+
+        if (
+          action ===
+          'subscribe'
+        ) {
+
+          const config =
+            await phoneReminderRequest(
+              'config'
+            );
+
+
+          const raw =
+            atob(
+              config.publicKey
+                .replace(
+                  /-/g,
+                  '+'
+                )
+                .replace(
+                  /_/g,
+                  '/'
+                )
+            );
+
+
+          const key =
+            Uint8Array.from(
+              raw,
+              c =>
+                c.charCodeAt(0)
+            );
+
+
+          if (!subscription)
+            subscription =
+              await registration
+                .pushManager
+                .subscribe({
+
+                  userVisibleOnly:
+                    true,
+
+                  applicationServerKey:
+                    key
+
+                });
+
+
+          await phoneReminderRequest(
+            'subscribe',
+            {
+              subscription:
+                subscription.toJSON()
+            }
+          );
+
+
+          status.textContent =
+            'Enabled on this phone: 1 PM Mountain Time. Tap Send test notification to check delivery.';
+
+
+        } else if (
+          action ===
+          'unsubscribe'
+        ) {
+
+          if (subscription) {
+
+            await phoneReminderRequest(
+              'unsubscribe',
+              {
+                endpoint:
+                  subscription.endpoint
+              }
+            );
+
+
+            await subscription
+              .unsubscribe();
+          }
+
+
+          status.textContent =
+            'Reminders are off on this phone.';
+
+
+        } else {
+
+          if (!subscription)
+            throw Error(
+              'Enable on this phone first.'
+            );
+
+
+          await phoneReminderRequest(
+            'test',
+            {
+              endpoint:
+                subscription.endpoint
+            }
+          );
+
+
+          status.textContent =
+            'Test accepted for delivery. Check your phone’s notifications.';
+        }
+
+
+      } catch (error) {
+
+        status.textContent =
+          error.message;
+
+
+      } finally {
+
+        buttons.forEach(
+          b =>
+            b.disabled = false
+        );
+      }
+    }
+
+
+    /* =========================================================
+       LOG OUT
+    ========================================================= */
 
     async function logout() {
+
       await bookingClient.auth.signOut();
-      window.location.href = 'login.html';
+
+      window.location.href =
+        'login.html';
     }
+
   </script>
+
 </body>
-</html>
+  </html>
